@@ -273,4 +273,5 @@ if __name__ == "__main__":
 
 That’s it — now your Agent can fetch Wikidata entities, properties, and run any SPARQL you throw at it!
 
+
 🎉 Keep building and connecting your AI with the world’s knowledge graph!
