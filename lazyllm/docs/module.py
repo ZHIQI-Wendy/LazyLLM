@@ -990,70 +990,6 @@ Args:
     framework (str): The local inference framework to use for deployment. Supported values are ``lightllm``, ``vllm``, and ``lmdeploy``. The model will be deployed via ``TrainableModule`` using the specified framework.
 ''')
 
-add_chinese_doc('TrialModule.work', '''\
-执行单个模块的评估任务。
-
-该方法会对模块进行深拷贝，调用其 `update()` 方法，并将评估结果发送到多进程队列中。
-
-Args:
-    m (Any): 要评估的模块实例。
-    q (multiprocessing.Queue): 用于接收模块评估结果的队列。
-''')
-
-add_english_doc('TrialModule.work', '''\
-Execute a single evaluation trial for the given module.
-
-This method makes a deep copy of the module, updates it (e.g., applies internal logic), and places its evaluation result into a multiprocessing queue.
-
-Args:
-    m (Any): The module instance to evaluate.
-    q (multiprocessing.Queue): Queue to store the module's evaluation result.
-''')
-
-add_chinese_doc('TrialModule.update', '''\
-并行更新多个模块配置并获取评估结果。
-
-该方法会根据模块的可配置选项生成多个配置组合，利用多进程并发评估模块表现，并收集评估结果。
-
-操作流程包括：
-1. 获取模块可配置项；
-2. 为每个配置组合启动子进程执行 `work()`；
-3. 等待所有子进程完成；
-4. 收集每个子进程输出的 `eval_result`。
-
-结果将被记录在日志中。
-
-无返回值。
-''')
-
-add_english_doc('TrialModule.update', '''\
-Perform parallel evaluation of module configurations and collect results.
-
-This method:
-1. Retrieves configurable options of the module.
-2. Launches a process for each configuration using `work()`.
-3. Waits for all processes to complete.
-4. Collects and logs each module's evaluation result from the queue.
-
-No return value.
-''')
-
-add_chinese_doc('AutoModel', '''\
-用于部署在线 API 模型或本地模型的模块，支持加载在线推理模块或本地可微调模块。
-Args:
-    model (str): 指定要加载的模型名称，例如 ``internlm2-chat-7b``，可为空。为空时默认加载 ``internlm2-chat-7b``。
-    source (str): 指定要使用的在线模型服务，如需使用在线模型，必须传入此参数。支持 ``qwen`` / ``glm`` / ``openai`` / ``moonshot`` 等。
-    framework (str): 指定本地部署所使用的推理框架，支持 ``lightllm`` / ``vllm`` / ``lmdeploy``。将通过 ``TrainableModule`` 与指定框架组合进行部署。
-''')
-
-add_english_doc('AutoModel', '''\
-A module for deploying either online API-based models or local models, supporting both online inference and locally trainable modules.
-Args:
-    model (str): The name of the model to load, e.g., ``internlm2-chat-7b``. If None, ``internlm2-chat-7b`` will be loaded by default.
-    source (str): Specifies the online model service to use. Required when using online models. Supported values include ``qwen``, ``glm``, ``openai``, ``moonshot``, etc.
-    framework (str): The local inference framework to use for deployment. Supported values are ``lightllm``, ``vllm``, and ``lmdeploy``. The model will be deployed via ``TrainableModule`` using the specified framework.
-''')
-
 add_chinese_doc('OnlineChatModule', '''\
 用来管理创建目前市面上公开的大模型平台访问模块，目前支持openai、sensenova、glm、kimi、qwen、doubao、deekseek(由于该平台暂时不让充值了，暂时不支持访问)。平台的api key获取方法参见 [开始入门](/#platform)
 
@@ -1127,6 +1063,36 @@ add_example('OnlineEmbeddingModule', '''\
 >>> print(f"emb: {emb}")
 emb: [0.0010528564, 0.0063285828, 0.0049476624, -0.012008667, ..., -0.009124756, 0.0032043457, -0.051696777]
 ''')
+
+add_chinese_doc('OpenAIEmbedding', '''\
+OpenAI 在线嵌入模块。
+
+该类封装了对 OpenAI 嵌入 API 的调用，默认使用模型 `text-embedding-ada-002`，用于将文本编码为向量表示。
+
+Args:
+    embed_url (str): OpenAI 嵌入 API 的 URL，默认为 "https://api.openai.com/v1/embeddings"。
+    embed_model_name (str): 使用的嵌入模型名称，默认为 "text-embedding-ada-002"。
+    api_key (str, optional): OpenAI 的 API Key。若未提供，则从 lazyllm.config 中读取。
+''')
+
+add_english_doc('OpenAIEmbedding', '''\
+Online embedding module using OpenAI.
+
+This class wraps the OpenAI Embedding API, defaulting to the `text-embedding-ada-002` model, and converts text into vector representations.
+
+Args:
+    embed_url (str): The URL endpoint of the OpenAI embedding API. Default is "https://api.openai.com/v1/embeddings".
+    embed_model_name (str): The name of the embedding model to use. Default is "text-embedding-ada-002".
+    api_key (str, optional): The OpenAI API key. If not provided, it will be read from `lazyllm.config`.
+''')
+
+add_example('OpenAIEmbedding', ['''\
+>>> from lazyllm.components import OpenAIEmbedding
+>>> embedder = OpenAIEmbedding(api_key="your-openai-key")
+>>> vectors = embedder(["hello", "world"])
+>>> print(vectors[0][:5])  # print first 5 dimensions of the embedding
+... [0.0132, -0.0087, 0.0741, ...]
+'''])
 
 add_chinese_doc('OnlineChatModuleBase', '''\
 OnlineChatModuleBase是管理开放平台的LLM接口的公共组件，具备训练、部署、推理等关键能力。OnlineChatModuleBase本身不支持直接实例化，
@@ -1211,6 +1177,43 @@ add_example('OnlineChatModuleBase', '''\
 ...         return "RUNNING"
 ...
 ''')
+
+add_chinese_doc('DoubaoModule', '''\
+豆包（Doubao）在线对话模块。
+
+该类封装了对字节跳动豆包 API 的调用，用于进行多轮对话。默认使用模型 `doubao-1-5-pro-32k-250115`，支持流式输出和调用链跟踪。
+
+Args:
+    model (str): 使用的模型名称，默认为 `doubao-1-5-pro-32k-250115`。
+    base_url (str): API 的基础 URL，默认为 "https://ark.cn-beijing.volces.com/api/v3/"。
+    api_key (str): 豆包 API Key。若未提供，则从 lazyllm.config['doubao_api_key'] 读取。
+    stream (bool): 是否启用流式输出，默认为 True。
+    return_trace (bool): 是否返回调用链跟踪信息，默认为 False。
+    **kwargs: 其他传递给基类的参数。
+                
+''')
+
+add_english_doc('DoubaoModule', '''\
+Doubao online chat module.
+
+This class wraps the Doubao API (from ByteDance) for multi-turn chat. It defaults to model `doubao-1-5-pro-32k-250115` and supports streaming and optional trace return.
+
+Args:
+    model (str): The name of the model to use. Defaults to `doubao-1-5-pro-32k-250115`.
+    base_url (str): The base URL for the API. Defaults to "https://ark.cn-beijing.volces.com/api/v3/".
+    api_key (str): Doubao API key. If not provided, it will be read from `lazyllm.config['doubao_api_key']`.
+    stream (bool): Whether to use streaming output. Defaults to True.
+    return_trace (bool): Whether to return trace information. Defaults to False.
+    **kwargs: Additional arguments passed to the base class.
+''')
+
+add_example('DoubaoModule', ['''\
+>>> from lazyllm.components import DoubaoModule
+>>> doubao = DoubaoModule(api_key="your-doubao-api-key")
+>>> reply = doubao("你好，豆包是谁？")
+>>> print(reply)
+... "我是豆包，一个由字节跳动开发的智能助手。"
+'''])
 
 add_chinese_doc('OnlineEmbeddingModuleBase', '''\
 OnlineEmbeddingModuleBase是管理开放平台的嵌入模型接口的基类，用于请求文本获取嵌入向量。不建议直接对该类进行直接实例化。需要特定平台类继承该类进行实例化。
