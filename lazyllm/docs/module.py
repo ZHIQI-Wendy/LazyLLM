@@ -1190,6 +1190,7 @@ Args:
     stream (bool): 是否启用流式输出，默认为 True。
     return_trace (bool): 是否返回调用链跟踪信息，默认为 False。
     **kwargs: 其他传递给基类的参数。
+                
 ''')
 
 add_english_doc('DoubaoModule', '''\

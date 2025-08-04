@@ -30,7 +30,7 @@
     members:
 	exclude-members:
 
-::: lazyllm.tools.rag.component.bm25.BM25
+::: lazyllm.tools.rag.component.bm25
     members:
 	exclude-members:
 
@@ -92,7 +92,7 @@
     members:
 	exclude-members:
 
-::: lazyllm.tools.rag.component.bm25.BM25
+::: lazyllm.tools.rag.component.bm25
     members:
 	exclude-members:
 
@@ -154,7 +154,7 @@
     members:
 	exclude-members:
 
-::: lazyllm.tools.rag.component.bm25.BM25
+::: lazyllm.tools.rag.component.bm25
     members:
 	exclude-members:
 
@@ -428,6 +428,7 @@ lazyllm.tools.rag.transform.NodeTransform
     exclude-members: 
 ::: lazyllm.tools.rag.index_base.IndexBase
     members: 
+    exclude-members:
 
 ::: lazyllm.tools.BaseEvaluator
     members: 

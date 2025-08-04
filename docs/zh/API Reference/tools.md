@@ -428,6 +428,7 @@ lazyllm.tools.rag.transform.NodeTransform
     exclude-members: 
 ::: lazyllm.tools.rag.index_base.IndexBase
     members: 
+    exclude-members:
 
 ::: lazyllm.tools.BaseEvaluator
     members: 

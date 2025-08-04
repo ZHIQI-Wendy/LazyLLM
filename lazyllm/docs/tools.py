@@ -3628,7 +3628,56 @@ add_example('WebModule', '''\
 193703: 2024-06-07 10:26:00 lazyllm SUCCESS: ...
 ''')
 
-#actors/codegenerator
+add_chinese_doc('WebModule.init_web', '''\
+初始化 Web UI 页面。
+
+该方法使用 Gradio 构建对话界面，并将组件绑定到事件，支持会话选择、流式输出、上下文控制、多模态输入等功能。该方法返回构建完成的 Gradio Blocks 对象。
+
+Args:
+    component_descs (List[Tuple]): 组件描述列表，每项为五元组 (module, group_name, name, component_type, value)，
+        例如：('MyModule', 'GroupA', 'use_cache', 'Checkbox', True)。
+
+Returns:
+    gr.Blocks: 构建好的 Gradio 页面对象，可用于 launch 启动 Web 服务。
+''')
+
+add_english_doc('WebModule.init_web', '''\
+Initialize the Web UI page.
+
+This method uses Gradio to build the interactive chat interface and binds all components to the appropriate logic. It supports session selection, streaming output, context toggling, multimodal input, and control tools. The method returns the constructed Gradio Blocks object.
+
+Args:
+    component_descs (List[Tuple]): A list of component descriptors. Each element is a 5-tuple 
+        (module, group_name, name, component_type, value), e.g. ('MyModule', 'GroupA', 'use_cache', 'Checkbox', True).
+
+Returns:
+    gr.Blocks: The constructed Gradio UI object, which can be launched via `.launch()`.
+''')
+
+add_chinese_doc('WebModule.wait', '''\
+阻塞主线程，等待 Web 页面关闭。
+
+该方法会阻塞当前线程直到 Web 页面（Gradio demo）被关闭，适用于部署后阻止程序提前退出的场景。
+''')
+
+add_english_doc('WebModule.wait', '''\
+Block the main thread until the web interface is closed.
+
+This method blocks the current thread until the Gradio demo is closed. Useful in deployment scenarios to prevent premature program exit.
+''')
+
+add_chinese_doc('WebModule.stop', '''\
+关闭 Web 页面并清理资源。
+
+如果 Web 页面已初始化，则关闭 Gradio demo，释放资源并重置 `demo` 与 `url` 属性。
+''')
+
+add_english_doc('WebModule.stop', '''\
+Stop the web interface and clean up resources.
+
+If the web demo has been initialized, this method closes the Gradio demo, frees related resources, and resets `demo` and `url` attributes.
+''')
+
 add_chinese_doc('CodeGenerator', '''\
 代码生成模块。
 

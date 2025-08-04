@@ -34,6 +34,10 @@
     members: enqueue, dequeue, peek, size, clear
     exclude-members:
     
+::: lazyllm.common.SQLiteQueue
+    members: 
+    exclude-members:
+
 ## Register
 
 ::: lazyllm.common.Register
