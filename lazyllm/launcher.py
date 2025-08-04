@@ -87,6 +87,43 @@ lazyllm.config.add('k8s_config_path', str, '', 'K8S_CONFIG_PATH')
 # store cmd, return message and command output.
 # LazyLLMCMD's post_function can get message form this class.
 class Job(object):
+    """A job object that manages the execution of delayed commands using a launcher.
+
+This class encapsulates job queueing, command preparation, synchronous or asynchronous execution, and capturing return values.
+
+Args:
+    cmd (LazyLLMCMD): The command object that wraps the actual execution logic.
+    launcher (Any): The launcher responsible for running the job, typically implements a run(job) interface.
+    sync (bool): Whether to run the job synchronously. If False, the job runs in asynchronous mode.
+
+
+Examples:
+    >>> from lazyllm.runtime.job import Job
+    >>> from lazyllm.runtime.cmd import LazyLLMCMD
+    >>> from lazyllm.runtime.launcher import LocalLauncher
+    
+    >>> # 定义一个命令，例如执行 echo 测试命令
+    >>> cmd = LazyLLMCMD(cmd=["echo", "Hello, LazyLLM!"])
+    >>> launcher = LocalLauncher()
+    
+    >>> # 创建 Job 实例
+    >>> job = Job(cmd, launcher)
+    
+    >>> # 获取封装后的可执行命令
+    >>> fixed_cmd = job.get_executable_cmd()
+    >>> print(fixed_cmd.cmd)
+    ... ['echo', 'Hello, LazyLLM!']
+    
+    >>> # 启动作业（通过 launcher 启动，此处假设 LocalLauncher 已支持 run）
+    >>> launched_job = launcher.run(job)
+    
+    >>> # 等待作业完成（如果是同步执行）
+    >>> job.wait()
+    
+    >>> # 获取命令返回值或结果
+    >>> print(job.return_value)
+    ... <Job 对象本身或返回结果>
+    """
     def __init__(self, cmd, launcher, *, sync=True):
         assert isinstance(cmd, LazyLLMCMD)
         self._origin_cmd = cmd
@@ -105,6 +142,16 @@ class Job(object):
             self.return_value = self
 
     def get_executable_cmd(self, *, fixed=False):
+        """Generate the final executable command.
+
+If a fixed command already exists, return it. Otherwise, wrap the original command and cache it as `_fixed_cmd`.
+
+Args:
+    fixed (bool): Whether to use the cached fixed command.
+
+Returns:
+    LazyLLMCMD: The executable command object.
+"""
         if fixed and hasattr(self, '_fixed_cmd'):
             LOG.info('Command is fixed!')
             return self._fixed_cmd
@@ -115,10 +162,20 @@ class Job(object):
         return self._fixed_cmd
 
     # interfaces
-    def stop(self): raise NotImplementedError
+    def stop(self):
+        """Stop the current job.
+
+This method is an interface placeholder and must be implemented by subclasses.
+"""
+        raise NotImplementedError
     @property
     def status(self): raise NotImplementedError
-    def wait(self): pass
+    def wait(self):
+        """Suspend the current thread until the job finishes.
+
+Empty implementation by default; can be overridden in subclasses.
+"""
+        pass
     def _wrap_cmd(self, cmd): return cmd
 
     def _start(self, *, fixed):
@@ -144,11 +201,24 @@ class Job(object):
                     break
 
     def restart(self, *, fixed=False):
+        """Restart the job by first stopping it and then restarting after a short delay.
+
+Args:
+    fixed (bool): Whether to reuse the fixed command object.
+"""
         self.stop()
         time.sleep(2)
         self._start(fixed=fixed)
 
     def start(self, *, restart=3, fixed=False):
+        """Public interface to start the job with optional retry on failure.
+
+If the job fails, retries execution based on the `restart` parameter.
+
+Args:
+    restart (int): Number of times to retry upon failure. Default is 3.
+    fixed (bool): Whether to use the fixed version of the command.
+"""
         self._start(fixed=fixed)
         if not (lazyllm.config['mode'] == lazyllm.Mode.Display or self._fixed_cmd.checkf(self)):
             if restart > 0:
@@ -198,6 +268,43 @@ class K8sLauncher(LazyLLMLaunchersBase):
     namespace = "default"
 
     class Job(Job):
+        """A job object that manages the execution of delayed commands using a launcher.
+
+This class encapsulates job queueing, command preparation, synchronous or asynchronous execution, and capturing return values.
+
+Args:
+    cmd (LazyLLMCMD): The command object that wraps the actual execution logic.
+    launcher (Any): The launcher responsible for running the job, typically implements a run(job) interface.
+    sync (bool): Whether to run the job synchronously. If False, the job runs in asynchronous mode.
+
+
+Examples:
+    >>> from lazyllm.runtime.job import Job
+    >>> from lazyllm.runtime.cmd import LazyLLMCMD
+    >>> from lazyllm.runtime.launcher import LocalLauncher
+    
+    >>> # 定义一个命令，例如执行 echo 测试命令
+    >>> cmd = LazyLLMCMD(cmd=["echo", "Hello, LazyLLM!"])
+    >>> launcher = LocalLauncher()
+    
+    >>> # 创建 Job 实例
+    >>> job = Job(cmd, launcher)
+    
+    >>> # 获取封装后的可执行命令
+    >>> fixed_cmd = job.get_executable_cmd()
+    >>> print(fixed_cmd.cmd)
+    ... ['echo', 'Hello, LazyLLM!']
+    
+    >>> # 启动作业（通过 launcher 启动，此处假设 LocalLauncher 已支持 run）
+    >>> launched_job = launcher.run(job)
+    
+    >>> # 等待作业完成（如果是同步执行）
+    >>> job.wait()
+    
+    >>> # 获取命令返回值或结果
+    >>> print(job.return_value)
+    ... <Job 对象本身或返回结果>
+    """
         def __init__(self, cmd, launcher, *, sync=True):
             super().__init__(cmd, launcher, sync=sync)
             self.deployment_name = f"deployment-{uuid.uuid4().hex[:8]}"
@@ -1054,6 +1161,43 @@ class EmptyLauncher(LazyLLMLaunchersBase):
 
     @final
     class Job(Job):
+        """A job object that manages the execution of delayed commands using a launcher.
+
+This class encapsulates job queueing, command preparation, synchronous or asynchronous execution, and capturing return values.
+
+Args:
+    cmd (LazyLLMCMD): The command object that wraps the actual execution logic.
+    launcher (Any): The launcher responsible for running the job, typically implements a run(job) interface.
+    sync (bool): Whether to run the job synchronously. If False, the job runs in asynchronous mode.
+
+
+Examples:
+    >>> from lazyllm.runtime.job import Job
+    >>> from lazyllm.runtime.cmd import LazyLLMCMD
+    >>> from lazyllm.runtime.launcher import LocalLauncher
+    
+    >>> # 定义一个命令，例如执行 echo 测试命令
+    >>> cmd = LazyLLMCMD(cmd=["echo", "Hello, LazyLLM!"])
+    >>> launcher = LocalLauncher()
+    
+    >>> # 创建 Job 实例
+    >>> job = Job(cmd, launcher)
+    
+    >>> # 获取封装后的可执行命令
+    >>> fixed_cmd = job.get_executable_cmd()
+    >>> print(fixed_cmd.cmd)
+    ... ['echo', 'Hello, LazyLLM!']
+    
+    >>> # 启动作业（通过 launcher 启动，此处假设 LocalLauncher 已支持 run）
+    >>> launched_job = launcher.run(job)
+    
+    >>> # 等待作业完成（如果是同步执行）
+    >>> job.wait()
+    
+    >>> # 获取命令返回值或结果
+    >>> print(job.return_value)
+    ... <Job 对象本身或返回结果>
+    """
         def __init__(self, cmd, launcher, *, sync=True):
             super(__class__, self).__init__(cmd, launcher, sync=sync)
 
@@ -1165,6 +1309,43 @@ class SlurmLauncher(LazyLLMLaunchersBase):
 
     @final
     class Job(Job):
+        """A job object that manages the execution of delayed commands using a launcher.
+
+This class encapsulates job queueing, command preparation, synchronous or asynchronous execution, and capturing return values.
+
+Args:
+    cmd (LazyLLMCMD): The command object that wraps the actual execution logic.
+    launcher (Any): The launcher responsible for running the job, typically implements a run(job) interface.
+    sync (bool): Whether to run the job synchronously. If False, the job runs in asynchronous mode.
+
+
+Examples:
+    >>> from lazyllm.runtime.job import Job
+    >>> from lazyllm.runtime.cmd import LazyLLMCMD
+    >>> from lazyllm.runtime.launcher import LocalLauncher
+    
+    >>> # 定义一个命令，例如执行 echo 测试命令
+    >>> cmd = LazyLLMCMD(cmd=["echo", "Hello, LazyLLM!"])
+    >>> launcher = LocalLauncher()
+    
+    >>> # 创建 Job 实例
+    >>> job = Job(cmd, launcher)
+    
+    >>> # 获取封装后的可执行命令
+    >>> fixed_cmd = job.get_executable_cmd()
+    >>> print(fixed_cmd.cmd)
+    ... ['echo', 'Hello, LazyLLM!']
+    
+    >>> # 启动作业（通过 launcher 启动，此处假设 LocalLauncher 已支持 run）
+    >>> launched_job = launcher.run(job)
+    
+    >>> # 等待作业完成（如果是同步执行）
+    >>> job.wait()
+    
+    >>> # 获取命令返回值或结果
+    >>> print(job.return_value)
+    ... <Job 对象本身或返回结果>
+    """
         def __init__(self, cmd, launcher, *, sync=True, **kw):
             super(__class__, self).__init__(cmd, launcher, sync=sync)
             self.name = self._generate_name()
@@ -1333,6 +1514,43 @@ class ScoLauncher(LazyLLMLaunchersBase):
 
     @final
     class Job(Job):
+        """A job object that manages the execution of delayed commands using a launcher.
+
+This class encapsulates job queueing, command preparation, synchronous or asynchronous execution, and capturing return values.
+
+Args:
+    cmd (LazyLLMCMD): The command object that wraps the actual execution logic.
+    launcher (Any): The launcher responsible for running the job, typically implements a run(job) interface.
+    sync (bool): Whether to run the job synchronously. If False, the job runs in asynchronous mode.
+
+
+Examples:
+    >>> from lazyllm.runtime.job import Job
+    >>> from lazyllm.runtime.cmd import LazyLLMCMD
+    >>> from lazyllm.runtime.launcher import LocalLauncher
+    
+    >>> # 定义一个命令，例如执行 echo 测试命令
+    >>> cmd = LazyLLMCMD(cmd=["echo", "Hello, LazyLLM!"])
+    >>> launcher = LocalLauncher()
+    
+    >>> # 创建 Job 实例
+    >>> job = Job(cmd, launcher)
+    
+    >>> # 获取封装后的可执行命令
+    >>> fixed_cmd = job.get_executable_cmd()
+    >>> print(fixed_cmd.cmd)
+    ... ['echo', 'Hello, LazyLLM!']
+    
+    >>> # 启动作业（通过 launcher 启动，此处假设 LocalLauncher 已支持 run）
+    >>> launched_job = launcher.run(job)
+    
+    >>> # 等待作业完成（如果是同步执行）
+    >>> job.wait()
+    
+    >>> # 获取命令返回值或结果
+    >>> print(job.return_value)
+    ... <Job 对象本身或返回结果>
+    """
         def __init__(self, cmd, launcher, *, sync=True):
             super(__class__, self).__init__(cmd, launcher, sync=sync)
             # SCO job name must start with a letter

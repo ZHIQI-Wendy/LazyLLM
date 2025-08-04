@@ -32,6 +32,52 @@ class _MetaDocument(_MetaBind):
 
 
 class Document(ModuleBase, BuiltinGroups, metaclass=_MetaDocument):
+    """Initialize a document module with an optional user interface.
+
+This constructor initializes a document module that can have an optional user interface. If the user interface is enabled, it also provides a UI to manage the document operation interface and offers a web page for user interface interaction.
+
+Args:
+    dataset_path (str): The path to the dataset directory. This directory should contain the documents to be managed by the document module.
+    embed (Optional[Union[Callable, Dict[str, Callable]]]): The object used to generate document embeddings. If you need to generate multiple embeddings for the text, you need to specify multiple embedding models in a dictionary format. The key identifies the name corresponding to the embedding, and the value is the corresponding embedding model.
+    create_ui (bool): [Deprecated] Whether to create a user interface. Use 'manager' parameter instead.
+    manager (bool, optional): A flag indicating whether to create a user interface for the document module. Defaults to False.
+    server (Union[bool, int]): Server configuration. True for default server, False for no server, or an integer port number for custom server.
+    name (Optional[str]): Name identifier for this document collection. Required for cloud services.
+    launcher (optional): An object or function responsible for launching the server module. If not provided, the default asynchronous launcher from `lazyllm.launchers` is used (`sync=False`).
+    doc_fields (optional): Configure the fields that need to be stored and retrieved along with their corresponding types (currently only used by the Milvus backend).
+    doc_files (Optional[List[str]]): List of temporary document files (alternative to dataset_path).When used, dataset_path must be None and only map store is supported.
+    store_conf (optional): Configure which storage backend and index backend to use.      
+
+
+Examples:
+    >>> import lazyllm
+    >>> from lazyllm.tools import Document
+    >>> m = lazyllm.OnlineEmbeddingModule(source="glm")
+    >>> documents = Document(dataset_path='your_doc_path', embed=m, manager=False)  # or documents = Document(dataset_path='your_doc_path', embed={"key": m}, manager=False)
+    >>> m1 = lazyllm.TrainableModule("bge-large-zh-v1.5").start()
+    >>> document1 = Document(dataset_path='your_doc_path', embed={"online": m, "local": m1}, manager=False)
+    
+    >>> store_conf = {
+    >>>     'type': 'chroma',
+    >>>     'indices': {
+    >>>         'smart_embedding_index': {
+    >>>             'backend': 'milvus',
+    >>>             'kwargs': {
+    >>>                 'uri': '/tmp/tmp.db',
+    >>>                 'index_kwargs': {
+    >>>                     'index_type': 'HNSW',
+    >>>                     'metric_type': 'COSINE'
+    >>>                  }
+    >>>             },
+    >>>         },
+    >>>     },
+    >>> }
+    >>> doc_fields = {
+    >>>     'author': DocField(data_type=DataType.VARCHAR, max_size=128, default_value=' '),
+    >>>     'public_year': DocField(data_type=DataType.INT32),
+    >>> }
+    >>> document2 = Document(dataset_path='your_doc_path', embed={"online": m, "local": m1}, store_conf=store_conf, doc_fields=doc_fields)
+    """
     class _Manager(ModuleBase):
         def __init__(self, dataset_path: Optional[str], embed: Optional[Union[Callable, Dict[str, Callable]]] = None,
                      manager: Union[bool, str] = False, server: Union[bool, int] = False, name: Optional[str] = None,

@@ -7,7 +7,7 @@
 	exclude-members:
 
 ::: lazyllm.tools.Reranker
-    members:
+    members: register_reranker
     exclude-members: forward
 
 ::: lazyllm.tools.Retriever
@@ -15,6 +15,18 @@
     exclude-members: forward
 
 ::: lazyllm.tools.rag.DocManager
+    members:
+	exclude-members:
+
+::: lazyllm.tools.IndexBase.update
+    members:
+	exclude-members: 
+
+::: lazyllm.tools.IndexBase.remove
+    members:
+	exclude-members: 
+
+::: lazyllm.tools.IndexBase.query
     members:
 	exclude-members:
 
@@ -55,5 +67,53 @@
     exclude-members: forward
 
 ::: lazyllm.tools.IntentClassifier
+    members: 
+    exclude-members:
+
+::: lazyllm.tools.BaseEvaluator
+    members: 
+    exclude-members:
+
+::: lazyllm.tools.ResponseRelevancy
+    members: 
+    exclude-members:    
+
+::: lazyllm.tools.Faithfulness
+    members: 
+    exclude-members: 
+
+::: lazyllm.tools.LLMContextRecall
+    members: 
+    exclude-members: 
+
+::: lazyllm.tools.NonLLMContextRecall
+    members: 
+    exclude-members:
+
+::: lazyllm.tools.ContextRelevance
+    members: 
+    exclude-members:
+
+::: lazyllm.tools.HttpRequest
+    members: 
+    exclude-members:
+
+::: lazyllm.tools.HttpExecutorResponse
+    members: 
+    exclude-members:
+
+::: lazyllm.tools.JobDescription
+    members: 
+    exclude-members:
+
+::: lazyllm.tools.DBManager
+    members: 
+    exclude-members:
+
+::: lazyllm.tools.MongoDBManager
+    members: 
+    exclude-members:
+
+::: lazyllm.tools.HttpTool
     members: 
     exclude-members:

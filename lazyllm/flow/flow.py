@@ -49,6 +49,16 @@ def _is_function(f):
                           types.BuiltinMethodType, types.MethodType, types.LambdaType))
 
 class FlowBase(metaclass=_MetaBind):
+    """A base class for creating flow-like structures that can contain various items.
+
+This class provides a way to organize items, which can be instances of ``FlowBase`` or other types, into a hierarchical structure. Each item can have a name and the structure can be traversed or modified dynamically.
+
+Args:
+    items (iterable): An iterable of items to be included in the flow. These can be instances of ``FlowBase`` or other objects.
+    item_names (list of str, optional): A list of names corresponding to the items. This allows items to be accessed by name. If not provided, items can only be accessed by index.
+    auto_capture (bool, optional): If True, variables newly defined within the ``with`` block will be automatically added to the flow. Defaults to ``False``.
+
+"""
     def __init__(self, *items, item_names=[], auto_capture=False) -> None:
         self._father = None
         self._items, self._item_names, self._item_ids = [], [], []
@@ -152,6 +162,22 @@ setattr(bind, '__exit__', _bind_exit)
 # TODO(wangzhihong): support workflow launcher.
 # Disable item launchers if launcher is already set in workflow.
 class LazyLLMFlowsBase(FlowBase, metaclass=LazyLLMRegisterMetaClass):
+    """A base class for flow structures with hook support and unified execution logic.
+
+`LazyLLMFlowsBase` is the base class for all LazyLLM flow types. It organizes a sequence of callable modules into a flow and provides support for pre/post hooks, synchronization control, post-processing, and error-safe invocation. It is not intended for direct use but instead serves as a foundational class for concrete flow types like `Pipeline`, `Parallel`, etc.
+
+```text
+input --> [Flow module1 -> Flow module2 -> ... -> Flow moduleN] --> output
+                   ↑             ↓
+               pre_hook       post_hook
+```
+
+Args:
+    args: A sequence of callables representing the flow modules.
+    post_action: An optional callable applied to the output after main flow execution. Defaults to ``None``。
+    auto_capture: If True, variables newly defined within the ``with`` block will be automatically added to the flow. Defaults to ``False``.
+
+"""
     def __init__(self, *args, post_action=None, auto_capture=False, **kw):
         assert len(args) == 0 or len(kw) == 0, f'Cannot provide args `{args}` and kwargs `{kw}` at the same time'
         if len(args) > 0 and isinstance(args[0], (tuple, list)):
@@ -312,6 +338,26 @@ config.add('save_flow_result', bool, False, 'SAVE_FLOW_RESULT')
 
 @contextmanager
 def save_pipeline_result(flag: bool = True):
+    """A context manager that temporarily sets whether to save intermediate results during pipeline execution.
+
+When entering the context, `Pipeline.g_save_flow_result` is set to the given value. After exiting, it restores the previous value. Useful for debugging or recording intermediate outputs.
+
+Args:
+    flag (bool): Whether to enable result saving. Defaults to True.
+
+**Returns:**
+
+- ContextManager: A context manager.
+
+
+Examples:
+    >>> import lazyllm
+    >>> pipe = lazyllm.pipeline(lambda x: x + 1, lambda x: x * 2)
+    >>> with lazyllm.save_pipeline_result(True):
+    ...     result = pipe(1)
+    >>> result
+    4
+    """
     old_flag = Pipeline.g_save_flow_result
     Pipeline.g_save_flow_result = flag
     yield
@@ -466,6 +512,37 @@ class Diverter(Parallel):
 # Attention: Cannot be used in async tasks, ie: training and deploy
 # TODO: add check for async tasks
 class Warp(Parallel):
+    """A flow warp that applies a single module to multiple inputs in parallel.
+
+The Warp class is designed to apply the same processing module to a set of inputs. It effectively 'warps' the single module around the inputs so that each input is processed in parallel. The outputs are collected and returned as a tuple. It is important to note that this class cannot be used for asynchronous tasks, such as training and deployment.
+
+```text
+#                 /> in1 \                            /> out1 \\
+# (in1, in2, in3) -> in2 -> module1 -> ... -> moduleN -> out2 -> (out1, out2, out3)
+#                 \> in3 /                            \> out3 /
+``` 
+
+Args:
+    args: Variable length argument list representing the single module to be applied to all inputs.
+    _scatter (bool): Whether to scatter inputs into parts before processing. Defaults to False.
+    _concurrent (bool | int): Whether to execute in parallel. Can be a boolean or a max concurrency limit. Defaults to True.
+    auto_capture (bool): If True, variables newly defined within the ``with`` block will be automatically added to the flow. Defaults to ``False``.
+    kwargs: Arbitrary keyword arguments for future extensions.
+
+Note:
+    - Only one function is allowed in warp.
+    - The Warp flow should not be used for asynchronous tasks such as training and deployment.
+
+
+Examples:
+    >>> import lazyllm
+    >>> warp = lazyllm.warp(lambda x: x * 2)
+    >>> warp(1, 2, 3, 4)
+    (2, 4, 6, 8)
+    >>> warp = lazyllm.warp(lazyllm.pipeline(lambda x: x * 2, lambda x: f'get {x}'))
+    >>> warp(1, 2, 3, 4)
+    ('get 2', 'get 4', 'get 6', 'get 8')
+    """
     def __init__(self, *args, _scatter: bool = False, _concurrent: Union[bool, int] = True,
                  auto_capture: bool = False, **kw):
         super().__init__(*args, _scatter=_scatter, _concurrent=_concurrent, auto_capture=auto_capture, **kw)

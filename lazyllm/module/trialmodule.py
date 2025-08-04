@@ -22,6 +22,16 @@ class TrialModule(object):
         q.put(m.eval_result)
 
     def update(self):
+        """Perform parallel evaluation of module configurations and collect results.
+
+This method:
+1. Retrieves configurable options of the module.
+2. Launches a process for each configuration using `work()`.
+3. Waits for all processes to complete.
+4. Collects and logs each module's evaluation result from the queue.
+
+No return value.
+"""
         options = get_options(self.m)
         q = multiprocessing.Queue()
         ps = []

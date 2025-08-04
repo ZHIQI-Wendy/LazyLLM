@@ -2,7 +2,7 @@ from .module import ModuleBase, ActionModule, register
 from .servermodule import ServerModule, UrlModule
 from .trialmodule import TrialModule
 from .llms import (OnlineChatModule, OnlineChatModuleBase, OnlineEmbeddingModule,
-                   OnlineEmbeddingModuleBase, AutoModel, TrainableModule)
+                   OnlineEmbeddingModuleBase, AutoModel, TrainableModule, OnlineMultiModalModule, OnlineMultiModalBase, OpenAIEmbedding, DoubaoModule)
 
 __all__ = [
     'register',
@@ -17,4 +17,6 @@ __all__ = [
     "OnlineEmbeddingModule",
     "OnlineEmbeddingModuleBase",
     "AutoModel",
+    "OpenAIEmbedding",
+    "DoubaoModule"
 ]

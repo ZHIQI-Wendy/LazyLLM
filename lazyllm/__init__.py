@@ -3,7 +3,7 @@
 from .configs import config
 from .configs import * # noqa F401 of Config
 from .common import *  # noqa F403
-from .launcher import LazyLLMLaunchersBase
+from .launcher import LazyLLMLaunchersBase, Job
 from .flow import *  # noqa F403
 from .components import (LazyLLMDataprocBase, LazyLLMFinetuneBase, LazyLLMDeployBase,
                          LazyLLMValidateBase, register as component_register, Prompter,
@@ -43,7 +43,8 @@ __all__ = [
     'FileFormatter',
 
     # launcher
-    'LazyLLMLaunchersBase',        # empty, slurm, sco
+    'LazyLLMLaunchersBase', 
+    'Job',       # empty, slurm, sco
 
     # configs
     'Mode',

@@ -120,6 +120,44 @@ add_example('FlowBase.for_each', """\
 <Function type=test3>
 """)
 
+add_chinese_doc('LazyLLMFlowsBase', """\
+一个支持流程封装、钩子注册与调用逻辑的基础类。
+
+`LazyLLMFlowsBase` 是 LazyLLM 中所有流程（Flow）的基类，用于组织一系列可调用模块的执行流程，并支持钩子（hook）机制、同步控制、后处理逻辑等功能。它的设计旨在统一封装执行调用、异常处理、后处理、流程表示等功能，适用于各种同步数据处理场景。
+
+该类通常不直接使用，而是被诸如 `Pipeline`、`Parallel` 等具体流程类继承和使用。
+
+```text
+输入 --> [Flow模块1 -> Flow模块2 -> ... -> Flow模块N] --> 输出
+                   ↑             ↓
+               pre_hook       post_hook
+```
+
+Args:
+    args: 可变长度参数列表。
+    post_action: 在主流程结束后对输出进行进一步处理的可调用对象。默认为 ``None``。
+    auto_capture: 如果为 True，在上下文管理器模式下将自动捕获当前作用域中新定义的变量加入流中。默认为 False。
+
+""")
+
+add_english_doc('LazyLLMFlowsBase', """\
+A base class for flow structures with hook support and unified execution logic.
+
+`LazyLLMFlowsBase` is the base class for all LazyLLM flow types. It organizes a sequence of callable modules into a flow and provides support for pre/post hooks, synchronization control, post-processing, and error-safe invocation. It is not intended for direct use but instead serves as a foundational class for concrete flow types like `Pipeline`, `Parallel`, etc.
+
+```text
+input --> [Flow module1 -> Flow module2 -> ... -> Flow moduleN] --> output
+                   ↑             ↓
+               pre_hook       post_hook
+```
+
+Args:
+    args: A sequence of callables representing the flow modules.
+    post_action: An optional callable applied to the output after main flow execution. Defaults to ``None``。
+    auto_capture: If True, variables newly defined within the ``with`` block will be automatically added to the flow. Defaults to ``False``.
+
+""")
+
 add_chinese_doc('Parallel', """\
 用于管理LazyLLMFlows中的并行流的类。
 

@@ -7,6 +7,39 @@ import copy
 import re
 
 class LazyLLMPrompterBase(metaclass=LazyLLMRegisterMetaClass):
+    """The base class of Prompter. A custom Prompter needs to inherit from this base class and set the Prompt template and the Instruction template using the `_init_prompt` function provided by the base class, as well as the string used to capture results. Refer to  [prompt](/Best%20Practice/prompt) for further understanding of the design philosophy and usage of Prompts.
+
+Both the Prompt template and the Instruction template use ``{}`` to indicate the fields to be filled in. The fields that can be included in the Prompt are `system`, `history`, `tools`, `user` etc., while the fields that can be included in the instruction_template are `instruction` and `extra_keys`. If the ``instruction`` field is a string, it is considered as a system instruction; if it is a dictionary, it can only contain the keys ``user`` and ``system``. ``user`` represents the user input instruction, which is placed before the user input in the prompt, and ``system`` represents the system instruction, which is placed after the system prompt in the prompt.
+``instruction`` is passed in by the application developer, and the ``instruction`` can also contain ``{}`` to define fillable fields, making it convenient for users to input additional information.
+
+
+Examples:
+    >>> from lazyllm.components.prompter import PrompterBase
+    >>> class MyPrompter(PrompterBase):
+    ...     def __init__(self, instruction = None, extra_keys = None, show = False):
+    ...         super(__class__, self).__init__(show)
+    ...         instruction_template = f'{instruction}
+{{extra_keys}}
+'.replace('{extra_keys}', PrompterBase._get_extro_key_template(extra_keys))
+    ...         self._init_prompt("<system>{system}</system>
+</instruction>{instruction}</instruction>{history}
+{input}
+, ## Response::", instruction_template, '## Response::')
+    ... 
+    >>> p = MyPrompter('ins {instruction}')
+    >>> p.generate_prompt('hello')
+    '<system>You are an AI-Agent developed by LazyLLM.</system>
+</instruction>ins hello
+
+</instruction>
+
+, ## Response::'
+    >>> p.generate_prompt('hello world', return_dict=True)
+    {'messages': [{'role': 'system', 'content': 'You are an AI-Agent developed by LazyLLM.
+ins hello world
+
+'}, {'role': 'user', 'content': ''}]}
+    """
     ISA = "<!lazyllm-spliter!>"
     ISE = "</!lazyllm-spliter!>"
 

@@ -250,6 +250,78 @@ class ModuleBase(metaclass=_MetaBind):
 
 
 class ActionModule(ModuleBase):
+    """Used to wrap a Module around functions, modules, flows, Module, and other callable objects. The wrapped Module (including the Module within the flow) will become a submodule of this Module.
+
+Args:
+    action (Callable|list[Callable]): The object to be wrapped, which is one or a set of callable objects.
+    return_trace (bool): Whether to enable trace mode to record the execution stack. Defaults to ``False``.
+
+**Examples:**
+
+```python
+>>> import lazyllm
+>>> def myfunc(input): return input + 1
+... 
+>>> class MyModule1(lazyllm.module.ModuleBase):
+...     def forward(self, input): return input * 2
+... 
+>>> class MyModule2(lazyllm.module.ModuleBase):
+...     def _get_deploy_tasks(self): return lazyllm.pipeline(lambda : print('MyModule2 deployed!'))
+...     def forward(self, input): return input * 4
+... 
+>>> class MyModule3(lazyllm.module.ModuleBase):
+...     def _get_deploy_tasks(self): return lazyllm.pipeline(lambda : print('MyModule3 deployed!'))
+...     def forward(self, input): return f'get {input}'
+... 
+>>> m = lazyllm.ActionModule(myfunc, lazyllm.pipeline(MyModule1(), MyModule2), MyModule3())
+>>> print(m(1))
+get 16
+>>> 
+>>> m.evalset([1, 2, 3])
+>>> m.update()
+MyModule2 deployed!
+MyModule3 deployed!
+>>> print(m.eval_result)
+['get 16', 'get 24', 'get 32']
+```
+
+
+<span style="font-size: 20px;">**`evalset(evalset, load_f=None, collect_f=<function ModuleBase.<lambda>>)`**</span>
+
+Set the evaluation set for the Module. Modules that have been set with an evaluation set will be evaluated during ``update`` or ``eval``, and the evaluation results will be stored in the eval_result variable. 
+
+
+<span style="font-size: 18px;">&ensp;**`evalset(evalset, collect_f=lambda x: ...)→ None `**</span>
+
+
+Args:
+    evalset (list) :Evaluation set
+    collect_f (Callable) :Post-processing method for evaluation results, no post-processing by default.
+
+
+
+<span style="font-size: 18px;">&ensp;**`evalset(evalset, load_f=None, collect_f=lambda x: ...)→ None`**</span>
+
+
+Args:
+    evalset (str) :Path to the evaluation set
+    load_f (Callable) :Method for loading the evaluation set, including parsing file formats and converting to a list
+    collect_f (Callable) :Post-processing method for evaluation results, no post-processing by default.
+
+**Examples:**
+
+```python
+>>> import lazyllm
+>>> m = lazyllm.module.TrainableModule().deploy_method(deploy.dummy)
+>>> m.evalset([1, 2, 3])
+>>> m.update()
+INFO: (lazyllm.launcher) PID: dummy finetune!, and init-args is {}
+>>> m.eval_result
+["reply for 1, and parameters is {'do_sample': False, 'temperature': 0.1}", "reply for 2, and parameters is {'do_sample': False, 'temperature': 0.1}", "reply for 3, and parameters is {'do_sample': False, 'temperature': 0.1}"]
+```
+
+
+"""
     def __init__(self, *action, return_trace=False):
         super().__init__(return_trace=return_trace)
         if len(action) == 1 and isinstance(action, FlowBase): action = action[0]
@@ -259,10 +331,26 @@ class ActionModule(ModuleBase):
         self.action = action
 
     def forward(self, *args, **kw):
+        """Executes the wrapped action with the provided input arguments. Equivalent to directly calling the module.
+
+Args:
+    args (list of callables or single callable): Positional arguments to be passed to the wrapped action.
+    kwargs (dict of callables): Keyword arguments to be passed to the wrapped action.
+
+**Returns:**
+
+- Any: The result of executing the wrapped action.
+"""
         return self.action(*args, **kw)
 
     @property
     def submodules(self):
+        """Returns all submodules of type ModuleBase contained in the wrapped action. This automatically traverses any nested modules inside a Pipeline.
+
+**Returns:**
+
+- list[ModuleBase]: List of submodules
+"""
         try:
             if isinstance(self.action, FlowBase):
                 submodule = []

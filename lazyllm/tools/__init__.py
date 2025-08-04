@@ -1,4 +1,4 @@
-from .rag import Document, Reranker, Retriever, TempDocRetriever, SentenceSplitter, LLMParser
+from .rag import Document, Reranker, Retriever, TempDocRetriever, SentenceSplitter, LLMParser, IndexBase
 from .webpages import WebModule
 from .agent import (
     ToolManager,
@@ -44,4 +44,8 @@ __all__ = [
     "QustionRewrite",
     "CodeGenerator",
     "StreamCallHelper",
+    "HttpRequest",
+    "HttpExecutorResponse",
+    "JobDescription"
+    "IndexBase",
 ]

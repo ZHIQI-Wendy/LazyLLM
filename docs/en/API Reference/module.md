@@ -24,6 +24,11 @@
       - update
       - evalset
       - eval
+      - wait
+      - stop
+      - prompt
+      - work
+      - forward
 
 ::: lazyllm.module.UrlModule
     options:
@@ -37,8 +42,21 @@
       - restart
       - evalset
 
+::: lazyllm.module.AutoModel
+    options:
+      members:
+        - start
+
 ::: lazyllm.module.TrialModule
     members: start
+    exclude-members:
+
+::: lazyllm.module.TrialModule.work
+    members: 
+    exclude-members:
+
+::: lazyllm.module.TrialModule.update
+    members: 
     exclude-members:
 
 ::: lazyllm.module.OnlineChatModule

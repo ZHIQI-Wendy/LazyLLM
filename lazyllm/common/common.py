@@ -65,6 +65,24 @@ class CaseInsensitiveDict(dict):
 # pack return value of modules used in pipeline / parallel.
 # will unpack when passing it to the next item.
 class package(tuple):
+    """The package class is used to encapsulate the return values of pipeline or parallel modules,
+ensuring automatic unpacking when passing to the next module, thereby supporting flexible multi-value passing.
+
+
+Examples:
+    >>> from lazyllm.common import package
+    >>> p = package(1, 2, 3)
+    >>> p
+    (1, 2, 3)
+    >>> p[1]
+    2
+    >>> p_slice = p[1:]
+    >>> isinstance(p_slice, package)
+    True
+    >>> p2 = package([4, 5])
+    >>> p + p2
+    (1, 2, 3, 4, 5)
+    """
     def __new__(cls, *args):
         if len(args) == 1 and isinstance(args[0], (tuple, list, types.GeneratorType)):
             return super(__class__, cls).__new__(cls, args[0])

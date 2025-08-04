@@ -6,8 +6,70 @@
     members:
 	exclude-members:
 
-::: lazyllm.tools.Reranker
+::: lazyllm.tools.rag.component.bm25.BM25
     members:
+	exclude-members:
+
+::: lazyllm.tools.rag.doc_to_db.DocInfoSchemaItem
+    members:
+	exclude-members:
+
+::: lazyllm.tools.rag.doc_to_db.DocGenreAnalyser
+    members:
+	exclude-members:
+
+::: lazyllm.tools.rag.doc_to_db.DocInfoSchemaAnalyser
+    members:
+	exclude-members:
+
+::: lazyllm.tools.rag.doc_to_db.DocInfoExtractor
+    members:
+	exclude-members:
+
+::: lazyllm.tools.rag.doc_to_db.DocToDbProcessor
+    members: 
+        - extract_info_from_docs
+        - analyze_info_schema_by_llm
+	exclude-members:
+
+::: lazyllm.tools.rag.doc_to_db.extract_db_schema_from_files
+
+::: lazyllm.tools.rag.readers.DocxReader
+    members:
+	exclude-members:
+
+::: lazyllm.tools.rag.readers.EpubReader
+    members:
+	exclude-members:
+
+::: lazyllm.tools.rag.readers.HWPReader
+    members:
+	exclude-members:
+
+::: lazyllm.tools.rag.readers.ImageReader
+    members:
+	exclude-members:
+
+::: lazyllm.tools.rag.readers.IPYNBReader
+    members:
+	exclude-members:
+
+::: lazyllm.tools.rag.readers.MagicPDFReader
+    members:
+	exclude-members:
+
+::: lazyllm.tools.rag.readers.MarkdownReader
+    members:
+        - remove_images
+        - remove_hyperlinks
+	exclude-members:
+
+::: lazyllm.tools.rag.readers.MboxReader
+    members:
+	exclude-members:
+
+::: lazyllm.tools.Reranker
+    members: register_reranker
     exclude-members: forward
 
 ::: lazyllm.tools.Retriever
@@ -15,6 +77,18 @@
     exclude-members: forward
 
 ::: lazyllm.tools.rag.DocManager
+    members:
+	exclude-members:
+
+::: lazyllm.tools.IndexBase.update
+    members:
+	exclude-members: 
+
+::: lazyllm.tools.IndexBase.remove
+    members:
+	exclude-members: 
+
+::: lazyllm.tools.IndexBase.query
     members:
 	exclude-members:
 
@@ -55,5 +129,53 @@
     exclude-members: forward
 
 ::: lazyllm.tools.IntentClassifier
+    members: 
+    exclude-members:
+
+::: lazyllm.tools.BaseEvaluator
+    members: 
+    exclude-members:
+
+::: lazyllm.tools.ResponseRelevancy
+    members: 
+    exclude-members:    
+
+::: lazyllm.tools.Faithfulness
+    members: 
+    exclude-members: 
+
+::: lazyllm.tools.LLMContextRecall
+    members: 
+    exclude-members: 
+
+::: lazyllm.tools.NonLLMContextRecall
+    members: 
+    exclude-members:
+
+::: lazyllm.tools.ContextRelevance
+    members: 
+    exclude-members:
+
+::: lazyllm.tools.HttpRequest
+    members: 
+    exclude-members:
+
+::: lazyllm.tools.HttpExecutorResponse
+    members: 
+    exclude-members:
+
+::: lazyllm.tools.JobDescription
+    members: 
+    exclude-members:
+
+::: lazyllm.tools.DBManager
+    members: 
+    exclude-members:
+
+::: lazyllm.tools.MongoDBManager
+    members: 
+    exclude-members:
+
+::: lazyllm.tools.HttpTool
     members: 
     exclude-members:

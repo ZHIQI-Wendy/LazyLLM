@@ -62,6 +62,9 @@
     options:
       heading_level: 3
 
+::: lazyllm.launcher.Job
+    options:
+      heading_level: 3
 ---
 
 ## Prompter
@@ -147,6 +150,10 @@ Reference [LMDeploy][lazyllm.components.deploy.LMDeploy], which supports the Vis
       heading_level: 4
 
 ::: lazyllm.components.MusicGenDeploy
+    options:
+      heading_level: 4
+
+::: lazyllm.components.TTSInfer
     options:
       heading_level: 4
 

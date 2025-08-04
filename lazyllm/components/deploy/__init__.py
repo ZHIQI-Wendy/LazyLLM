@@ -8,7 +8,11 @@ from .ray import Distributed
 from .mindie import Mindie
 from .embed import EmbeddingDeploy
 from .stable_diffusion import StableDiffusionDeploy
+<<<<<<< Updated upstream
 from .text_to_speech import TTSDeploy, BarkDeploy, ChatTTSDeploy, MusicGenDeploy
+=======
+from .text_to_speech import TTSDeploy, BarkDeploy, ChatTTSDeploy, MusicGenDeploy, TTSInfer
+>>>>>>> Stashed changes
 from .speech_to_text import SenseVoiceDeploy
 from .ocr import OCRDeploy
 
