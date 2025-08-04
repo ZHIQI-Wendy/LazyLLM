@@ -30,6 +30,12 @@
 
 ## Queue
 
+::: lazyllm.common.FileSystemQueue
+    members: enqueue, dequeue, peek, size, clear
+    exclude-members:
+    
+## Queue
+
 ::: lazyllm.common.SQLiteQueue
     options:
       heading_level: 3

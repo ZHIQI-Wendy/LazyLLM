@@ -101,7 +101,8 @@ class DocImpl:
     def __init__(self, embed: Dict[str, Callable], dlm: Optional[DocListManager] = None,
                  doc_files: Optional[str] = None, kb_group_name: Optional[str] = None,
                  global_metadata_desc: Dict[str, GlobalMetadataDesc] = None, store_conf: Optional[Dict] = None,
-                 processor: Optional[DocumentProcessor] = None, algo_name: Optional[str] = None):
+                 processor: Optional[DocumentProcessor] = None, algo_name: Optional[str] = None,
+                 display_name: Optional[str] = None, description: Optional[str] = None):
         super().__init__()
         self._local_file_reader: Dict[str, Callable] = {}
         self._kb_group_name = kb_group_name or DocListManager.DEFAULT_GROUP_NAME
@@ -120,6 +121,8 @@ class DocImpl:
         self._index_pending_registrations = []
         self._processor = processor
         self._algo_name = algo_name
+        self._display_name = display_name
+        self._description = description
 
     def _init_node_groups(self):
         node_groups = DocImpl._builtin_node_groups.copy()
@@ -163,9 +166,11 @@ class DocImpl:
         self._resolve_index_pending_registrations()
         if self._processor:
             assert cloud and isinstance(self._processor, DocumentProcessor)
-            self._processor.register_algorithm(self._algo_name, self.store, self._reader, self.node_groups)
+            self._processor.register_algorithm(self._algo_name, self.store, self._reader, self.node_groups,
+                                               self._display_name, self._description)
         else:
-            self._processor = _Processor(self.store, self._reader, self.node_groups)
+            self._processor = _Processor(self.store, self._reader, self.node_groups, self._display_name,
+                                         self._description)
 
         # init files when `cloud` is False
         if not cloud and not self.store.is_group_active(LAZY_ROOT_NAME):
@@ -352,6 +357,11 @@ class DocImpl:
             self._dlm.update_kb_group(cond_file_ids=failed_ids, cond_group=self._kb_group_name,
                                       cond_status_list=cond_status_list, new_status=DocListManager.Status.failed)
 
+    def _batch_call(self, func: Callable, *args, batch_size: int = 10, **kwargs):
+        batch_count = next((len(arg) for arg in args if isinstance(arg, (tuple, list))), 0)
+        for i in range(0, batch_count, batch_size):
+            func(*[arg[i:i + batch_size] if isinstance(arg, (list, tuple)) else arg for arg in args], **kwargs)
+
     def worker(self):
         is_first_run = True
         while True:
@@ -371,7 +381,7 @@ class DocImpl:
                 self._dlm.update_kb_group(cond_file_ids=ids, cond_group=self._kb_group_name,
                                           new_status=DocListManager.Status.working, new_need_reparse=False)
                 self._delete_doc_from_store(doc_ids=ids)
-                self._add_doc_to_store_with_status(filepaths, ids, metadatas)
+                self._batch_call(self._add_doc_to_store_with_status, filepaths, ids, metadatas, batch_size=10)
 
             # Step 2: After doc is deleted from related kb_group, delete doc from db
             if self._kb_group_name == DocListManager.DEFAULT_GROUP_NAME:
@@ -389,8 +399,8 @@ class DocImpl:
             if files:
                 self._dlm.update_kb_group(cond_file_ids=ids, cond_group=self._kb_group_name,
                                           new_status=DocListManager.Status.working)
-                self._add_doc_to_store_with_status(files, ids, metadatas,
-                                                   cond_status_list=[DocListManager.Status.working])
+                self._batch_call(self._add_doc_to_store_with_status,
+                                 files, ids, metadatas, cond_status_list=[DocListManager.Status.working])
 
             if is_first_run:
                 self._init_monitor_event.set()

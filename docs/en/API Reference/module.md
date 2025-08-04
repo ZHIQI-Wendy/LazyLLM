@@ -27,7 +27,6 @@
       - wait
       - stop
       - prompt
-      - work
       - forward
 
 ::: lazyllm.module.UrlModule
@@ -45,7 +44,6 @@
 ::: lazyllm.module.AutoModel
     options:
       members:
-        - start
 
 ::: lazyllm.module.TrialModule
     members: start

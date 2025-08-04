@@ -16,6 +16,8 @@ __all__ = [
     "OnlineChatModuleBase",
     "OnlineEmbeddingModule",
     "OnlineEmbeddingModuleBase",
+    "OnlineMultiModalModule",
+    "OnlineMultiModalBase",
     "AutoModel",
     "OpenAIEmbedding",
     "DoubaoModule"

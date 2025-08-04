@@ -125,7 +125,7 @@ class DocListManager(ABC):
         self._init_sql()
         self._delete_nonexistent_docs_on_startup()
 
-        self._monitor_thread = threading.Thread(target=self.monitor_directory_worker)
+        self._monitor_thread = threading.Thread(target=self._monitor_directory_worker)
         self._monitor_thread.daemon = True
         self._monitor_continue = True
         self._enable_path_monitoring = enable_path_monitoring
@@ -151,7 +151,7 @@ class DocListManager(ABC):
         self.add_kb_group(DocListManager.DEFAULT_GROUP_NAME)
         return self
 
-    def monitor_directory(self) -> Set[str]:
+    def _monitor_directory(self) -> Set[str]:
         files_list = []
         for root, _, files in os.walk(self._path):
             files = [os.path.join(root, file_path) for file_path in files]
@@ -274,7 +274,7 @@ class DocListManager(ABC):
             if self._monitor_thread.is_alive():
                 self._monitor_thread.join()
 
-    def monitor_directory_worker(self):
+    def _monitor_directory_worker(self):
         failed_files_count = defaultdict(int)
         docs_all = self._get_all_docs()
 
@@ -283,7 +283,7 @@ class DocListManager(ABC):
         is_first_run = True
         while self._monitor_continue:
             # 1. Scan files in the directory, find added and deleted files
-            current_files = set(self.monitor_directory())
+            current_files = set(self._monitor_directory())
             to_be_added_files = current_files - previous_files - skip_files
             to_be_deleted_files = previous_files - current_files - skip_files
             failed_files = set()
@@ -422,10 +422,11 @@ class SqliteDocListManager(DocListManager):
                 paths_is_new[i] = False
         return True, "Success", paths_is_new
 
-    def update_need_reparsing(self, doc_id: str, need_reparse: bool):
+    def update_need_reparsing(self, doc_id: str, need_reparse: bool, group_name: Optional[str] = None):
         with self._db_lock, self._Session() as session:
-            session.execute(update(KBGroupDocuments).where(
-                KBGroupDocuments.doc_id == doc_id).values(need_reparse=need_reparse))
+            stmt = update(KBGroupDocuments).where(KBGroupDocuments.doc_id == doc_id)
+            if group_name is not None: stmt = stmt.where(KBGroupDocuments.group_name == group_name)
+            session.execute(stmt.values(need_reparse=need_reparse))
             session.commit()
 
     def list_files(self, limit: Optional[int] = None, details: bool = False,

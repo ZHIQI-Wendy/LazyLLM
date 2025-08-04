@@ -1,7 +1,7 @@
 import lazyllm
 from lazyllm import LOG
 from .trainablemodule import TrainableModule
-from .onlineChatModule import OnlineChatModule
+from .onlinemodule import OnlineChatModule
 
 class AutoModel:
     """A module for deploying either online API-based models or local models, supporting both online inference and locally trainable modules.
