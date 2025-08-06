@@ -38,7 +38,7 @@
     members: start
     exclude-members:
 
-::: lazyllm.common.SQLiteQueue
+::: lazyllm.common.queue.SQLiteQueue
     options:
       heading_level: 3
       

@@ -1038,6 +1038,42 @@ ret: Hello! How can I assist you today?
 >>> print(vlm(inputs))
 ''')
 
+add_chinese_doc('llms.onlinemodule.supplier.doubao.DoubaoModule', '''\
+豆包（Doubao）在线对话模块。
+
+该类封装了对字节跳动豆包 API 的调用，用于进行多轮对话。默认使用模型 `doubao-1-5-pro-32k-250115`，支持流式输出和调用链跟踪。
+
+Args:
+    model (str): 使用的模型名称，默认为 `doubao-1-5-pro-32k-250115`。
+    base_url (str): API 的基础 URL，默认为 "https://ark.cn-beijing.volces.com/api/v3/"。
+    api_key (str): 豆包 API Key。若未提供，则从 lazyllm.config['doubao_api_key'] 读取。
+    stream (bool): 是否启用流式输出，默认为 True。
+    return_trace (bool): 是否返回调用链跟踪信息，默认为 False。
+    **kwargs: 其他传递给基类的参数。
+''')
+
+add_english_doc('llms.onlinemodule.supplier.doubao.DoubaoModule', '''\
+Doubao online chat module.
+
+This class wraps the Doubao API (from ByteDance) for multi-turn chat. It defaults to model `doubao-1-5-pro-32k-250115` and supports streaming and optional trace return.
+
+Args:
+    model (str): The name of the model to use. Defaults to `doubao-1-5-pro-32k-250115`.
+    base_url (str): The base URL for the API. Defaults to "https://ark.cn-beijing.volces.com/api/v3/".
+    api_key (str): Doubao API key. If not provided, it will be read from `lazyllm.config['doubao_api_key']`.
+    stream (bool): Whether to use streaming output. Defaults to True.
+    return_trace (bool): Whether to return trace information. Defaults to False.
+    **kwargs: Additional arguments passed to the base class.
+''')
+
+add_example('llms.onlinemodule.supplier.doubao.DoubaoModule', ['''\
+>>> from lazyllm.components import DoubaoModule
+>>> doubao = DoubaoModule(api_key="your-doubao-api-key")
+>>> reply = doubao("你好，豆包是谁？")
+>>> print(reply)
+... "我是豆包，一个由字节跳动开发的智能助手。"
+'''])
+
 add_chinese_doc('OnlineEmbeddingModule', '''\
 用来管理创建目前市面上的在线Embedding服务模块，目前支持openai、sensenova、glm、qwen、doubao
 
@@ -1064,7 +1100,7 @@ add_example('OnlineEmbeddingModule', '''\
 emb: [0.0010528564, 0.0063285828, 0.0049476624, -0.012008667, ..., -0.009124756, 0.0032043457, -0.051696777]
 ''')
 
-add_chinese_doc('OpenAIEmbedding', '''\
+add_chinese_doc('llms.onlinemodule.supplier.openai.OpenAIEmbedding', '''\
 OpenAI 在线嵌入模块。
 
 该类封装了对 OpenAI 嵌入 API 的调用，默认使用模型 `text-embedding-ada-002`，用于将文本编码为向量表示。
@@ -1075,7 +1111,7 @@ Args:
     api_key (str, optional): OpenAI 的 API Key。若未提供，则从 lazyllm.config 中读取。
 ''')
 
-add_english_doc('OpenAIEmbedding', '''\
+add_english_doc('llms.onlinemodule.supplier.openai.OpenAIEmbedding', '''\
 Online embedding module using OpenAI.
 
 This class wraps the OpenAI Embedding API, defaulting to the `text-embedding-ada-002` model, and converts text into vector representations.
@@ -1086,7 +1122,7 @@ Args:
     api_key (str, optional): The OpenAI API key. If not provided, it will be read from `lazyllm.config`.
 ''')
 
-add_example('OpenAIEmbedding', ['''\
+add_example('llms.onlinemodule.supplier.openai.OpenAIEmbedding', ['''\
 >>> from lazyllm.components import OpenAIEmbedding
 >>> embedder = OpenAIEmbedding(api_key="your-openai-key")
 >>> vectors = embedder(["hello", "world"])
@@ -1177,43 +1213,6 @@ add_example('OnlineChatModuleBase', '''\
 ...         return "RUNNING"
 ...
 ''')
-
-add_chinese_doc('DoubaoModule', '''\
-豆包（Doubao）在线对话模块。
-
-该类封装了对字节跳动豆包 API 的调用，用于进行多轮对话。默认使用模型 `doubao-1-5-pro-32k-250115`，支持流式输出和调用链跟踪。
-
-Args:
-    model (str): 使用的模型名称，默认为 `doubao-1-5-pro-32k-250115`。
-    base_url (str): API 的基础 URL，默认为 "https://ark.cn-beijing.volces.com/api/v3/"。
-    api_key (str): 豆包 API Key。若未提供，则从 lazyllm.config['doubao_api_key'] 读取。
-    stream (bool): 是否启用流式输出，默认为 True。
-    return_trace (bool): 是否返回调用链跟踪信息，默认为 False。
-    **kwargs: 其他传递给基类的参数。
-                
-''')
-
-add_english_doc('DoubaoModule', '''\
-Doubao online chat module.
-
-This class wraps the Doubao API (from ByteDance) for multi-turn chat. It defaults to model `doubao-1-5-pro-32k-250115` and supports streaming and optional trace return.
-
-Args:
-    model (str): The name of the model to use. Defaults to `doubao-1-5-pro-32k-250115`.
-    base_url (str): The base URL for the API. Defaults to "https://ark.cn-beijing.volces.com/api/v3/".
-    api_key (str): Doubao API key. If not provided, it will be read from `lazyllm.config['doubao_api_key']`.
-    stream (bool): Whether to use streaming output. Defaults to True.
-    return_trace (bool): Whether to return trace information. Defaults to False.
-    **kwargs: Additional arguments passed to the base class.
-''')
-
-add_example('DoubaoModule', ['''\
->>> from lazyllm.components import DoubaoModule
->>> doubao = DoubaoModule(api_key="your-doubao-api-key")
->>> reply = doubao("你好，豆包是谁？")
->>> print(reply)
-... "我是豆包，一个由字节跳动开发的智能助手。"
-'''])
 
 add_chinese_doc('OnlineEmbeddingModuleBase', '''\
 OnlineEmbeddingModuleBase是管理开放平台的嵌入模型接口的基类，用于请求文本获取嵌入向量。不建议直接对该类进行直接实例化。需要特定平台类继承该类进行实例化。

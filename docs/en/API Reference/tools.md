@@ -229,15 +229,15 @@
       - release
 	exclude-members:
 
-::: lazyllm.tools.IndexBase.update
+::: lazyllm.tools.rag.IndexBase.update
     members:
 	exclude-members: 
 
-::: lazyllm.tools.IndexBase.remove
+::: lazyllm.tools.rag.IndexBase.remove
     members:
 	exclude-members: 
 
-::: lazyllm.tools.IndexBase.query
+::: lazyllm.tools.rag.IndexBase.query
     members:
 	exclude-members:
 
