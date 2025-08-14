@@ -14,7 +14,30 @@ try:
     from typing import final
 except ImportError:
     _F = typing.TypeVar("_F", bound=Callable[..., Any])
-    def final(f: _F) -> _F: return f
+    def final(f: _F) -> _F:
+        """A decorator to indicate final methods and final classes.
+
+    Use this decorator to indicate to type checkers that the decorated
+    method cannot be overridden, and decorated class cannot be subclassed.
+    For example:
+
+      class Base:
+          @final
+          def done(self) -> None:
+              ...
+      class Sub(Base):
+          def done(self) -> None:  # Error reported by type checker
+                ...
+
+      @final
+      class Leaf:
+          ...
+      class Other(Leaf):  # Error reported by type checker
+          ...
+
+    There is no runtime checking of these properties.
+    """
+        return f
 
 try:
     from typing import override
@@ -44,6 +67,53 @@ class ArgsDict(dict):
         return string
 
 class CaseInsensitiveDict(dict):
+    """Case-insensitive dictionary class.
+
+CaseInsensitiveDict inherits from dict and provides case-insensitive key-value storage and retrieval. All keys are converted to lowercase when stored, ensuring that values can be accessed regardless of whether the key name is uppercase, lowercase, or mixed case.
+
+Features:
+    - All keys are automatically converted to lowercase when stored
+    - Supports standard dictionary operations (get, set, check containment)
+    - Maintains all original dict functionality, only differs in key name handling
+
+Args:
+    *args: Positional arguments passed to the parent dict class
+    **kwargs: Keyword arguments passed to the parent dict class
+
+
+Examples:
+    >>> from lazyllm.common import CaseInsensitiveDict
+    >>> # 创建大小写不敏感的字典
+    >>> d = CaseInsensitiveDict({'Name': 'John', 'AGE': 25, 'City': 'New York'})
+    >>> 
+    >>> # 使用不同大小写访问相同的键
+    >>> print(d['name'])      # 使用小写
+    ... 'John'
+    >>> print(d['NAME'])      # 使用大写
+    ... 'John'
+    >>> print(d['Name'])      # 使用首字母大写
+    ... 'John'
+    >>> 
+    >>> # 设置值时也会转换为小写
+    >>> d['EMAIL'] = 'john@example.com'
+    >>> print(d['email'])     # 使用小写访问
+    ... 'john@example.com'
+    >>> 
+    >>> # 检查键是否存在（大小写不敏感）
+    >>> 'AGE' in d
+    True
+    >>> 'age' in d
+    True
+    >>> 'Age' in d
+    True
+    >>> 
+    >>> # 支持标准字典操作
+    >>> d['PHONE'] = '123-456-7890'
+    >>> print(d.get('phone'))
+    ... '123-456-7890'
+    >>> print(len(d))
+    ... 5
+    """
     def __init__(self, *args, **kwargs):
         super().__init__()
         for key, value in dict(*args, **kwargs).items():
@@ -65,6 +135,24 @@ class CaseInsensitiveDict(dict):
 # pack return value of modules used in pipeline / parallel.
 # will unpack when passing it to the next item.
 class package(tuple):
+    """The package class is used to encapsulate the return values of pipeline or parallel modules,
+ensuring automatic unpacking when passing to the next module, thereby supporting flexible multi-value passing.
+
+
+Examples:
+    >>> from lazyllm.common import package
+    >>> p = package(1, 2, 3)
+    >>> p
+    (1, 2, 3)
+    >>> p[1]
+    2
+    >>> p_slice = p[1:]
+    >>> isinstance(p_slice, package)
+    True
+    >>> p2 = package([4, 5])
+    >>> p + p2
+    (1, 2, 3, 4, 5)
+    """
     def __new__(cls, *args):
         if len(args) == 1 and isinstance(args[0], (tuple, list, types.GeneratorType)):
             return super(__class__, cls).__new__(cls, args[0])
@@ -114,6 +202,27 @@ setattr(builtins, 'package', package)
 
 
 class LazyLLMCMD(object):
+    """Command line operation wrapper class providing secure and flexible command management.
+
+Args:
+    cmd (Union[str, List[str], Callable]):Command input, supports three formats:String command,Command list,Callable object.
+    return_value (Any):Preset return value.
+    checkf(Any):Command validation function with signature.
+    no_displays(Any):Sensitive parameter names to filter.
+
+
+
+Examples:
+    >>> from lazyllm.common import LazyLLMCMD
+    >>> cmd = LazyLLMCMD("run --epochs=50 --batch-size=32")
+    >>> print(cmd.get_args("epochs"))
+    50
+    >>> print(cmd.get_args("batch-size")) 
+    32
+    >>> base = LazyLLMCMD("python train.py", checkf=lambda x: True)
+    >>> new = base.with_cmd("python predict.py")
+    
+    """
     def __init__(self, cmd, *, return_value=None, checkf=(lambda *a: True), no_displays=None):
         if isinstance(cmd, (tuple, list)):
             cmd = ' && '.join(cmd)
@@ -138,12 +247,23 @@ class LazyLLMCMD(object):
             return cmd
 
     def with_cmd(self, cmd):
+        """Create new command object inheriting current configuration.
+
+Args:
+    cmd: New command content (must be same type as original)
+
+"""
         # Attention: Cannot use copy.deepcopy because of class method.
         new_instance = LazyLLMCMD(cmd, return_value=self.return_value,
                                   checkf=self.checkf, no_displays=self.no_displays)
         return new_instance
 
     def get_args(self, key):
+        """Extracts specified argument value from command string.
+
+Args:
+    key: Argument name
+"""
         assert not callable(self.cmd), f'Cannot get args from function {self.cmd}'
         pattern = r'*(-{1,2}' + re.escape(key) + r')(\s|=|)(\S+|)*'
         return re.match(pattern, self.cmd)[3]
@@ -170,10 +290,19 @@ def timeout(duration, *, msg=''):
 
 
 class ReadOnlyWrapper(object):
+    """A lightweight read-only wrapper that holds an arbitrary object and exposes its attributes. It supports swapping the internal object dynamically and provides utility for checking emptiness. Note: it does not enforce deep immutability, but deepcopy drops the wrapped object.
+Args:
+    obj (Optional[Any]): The initial wrapped object, defaults to None.
+"""
     def __init__(self, obj=None):
         self.obj = obj
 
     def set(self, obj):
+        """Replace the currently wrapped internal object.
+
+Args:
+    obj (Any): New object to wrap.
+"""
         self.obj = obj
 
     def __getattr__(self, key):
@@ -192,10 +321,27 @@ class ReadOnlyWrapper(object):
         return ReadOnlyWrapper()
 
     def isNone(self):
+        """Check whether the wrapper currently holds no object.
+
+Args:
+    None.
+
+**Returns**
+
+- bool: True if the internal object is None, otherwise False.
+"""
         return self.obj is None
 
 
 class Identity():
+    """Identity module that directly returns the input as output.
+
+This module serves as a no-op placeholder in composition pipelines. If multiple inputs are provided, they are packed together before returning.
+
+Args:
+    *args: Optional positional arguments for placeholder compatibility.
+    **kw: Optional keyword arguments for placeholder compatibility.
+"""
     def __init__(self, *args, **kw):
         pass
 
@@ -209,6 +355,10 @@ class Identity():
 
 
 class ResultCollector(object):
+    """A result collector used to store and access results by name during the execution of a flow or task.  
+Calling the instance with a name returns a callable Impl object that collects results for that name.  
+Useful for scenarios where intermediate results need to be shared across steps.
+"""
     class Impl(object):
         def __init__(self, name, value): self._name, self._value = name, value
 
@@ -226,8 +376,22 @@ class ResultCollector(object):
     def __call__(self, name): return ResultCollector.Impl(name, self._value)
     def __getitem__(self, name): return self._value[name]
     def __repr__(self): return repr(self._value)
-    def keys(self): return self._value.keys()
-    def items(self): return self._value.items()
+    def keys(self):
+        """Get all stored result names.
+
+**Returns**
+
+- KeysView[str]: A set-like object containing result names.
+"""
+        return self._value.keys()
+    def items(self):
+        """Get all stored (name, value) pairs.
+
+**Returns**
+
+- ItemsView[str, Any]: A set-like object containing name-value pairs of results.
+"""
+        return self._value.items()
 
 
 class ReprRule(object):
@@ -421,6 +585,11 @@ def reset_on_pickle(*fields):
     return decorator
 
 class EnvVarContextManager:
+    """Environment variable context manager used to temporarily set environment variables during the execution of a code block, automatically restoring original environment variables upon exit.
+
+Args:
+    env_vars_dict (dict): Dictionary of environment variables to temporarily set; variables with None values are ignored.
+"""
     def __init__(self, env_vars_dict):
         self.env_vars_dict = {var: value for var, value in env_vars_dict.items() if value is not None}
         self.original_values = {}

@@ -12,10 +12,26 @@ from lazyllm.flow import Pipeline
 
 
 class WebUi:
+    """A Gradio-based web UI for managing knowledge base files.
+
+This class provides an interactive UI to create/delete groups, upload files, list files, and perform deletion operations via RESTful APIs. It is designed for rapid integration of file and group management.
+
+Args:
+    base_url (str): Base URL of the backend API service.
+"""
     def __init__(self, base_url) -> None:
         self.base_url = base_url
 
     def basic_headers(self, content_type=True):
+        """
+Generate standard HTTP headers.
+
+Args:
+    content_type (bool): Whether to include Content-Type in the headers (default: True).
+
+Returns:
+    dict: Dictionary of HTTP headers.
+"""
         return {
             "accept": "application/json",
             "Content-Type": "application/json" if content_type else None,
@@ -24,19 +40,53 @@ class WebUi:
     def muti_headers(
         self,
     ):
+        """
+Generate HTTP headers for file upload.
+
+Returns:
+    dict: Dictionary of HTTP headers.
+"""
         return {"accept": "application/json"}
 
     def post_request(self, url, data):
+        """
+Send a POST request.
+
+Args:
+    url (str): Target request URL.
+    data (dict): Request data (will be serialized as JSON).
+
+Returns:
+    dict: JSON response from the server.
+"""
         response = requests.post(
             url, headers=self.basic_headers(), data=json.dumps(data)
         )
         return response.json()
 
     def get_request(self, url):
+        """
+Send a GET request.
+
+Args:
+    url (str): Target request URL.
+
+Returns:
+    dict: JSON response from the server.
+"""
         response = requests.get(url, headers=self.basic_headers(False))
         return response.json()
 
     def new_group(self, group_name: str):
+        """
+Create a new file group.
+
+Args:
+    group_name (str): Name of the new group.
+
+Returns:
+    str: Server message about the creation result.
+"""
         response = requests.post(
             f"{self.base_url}/new_group?group_name={group_name}",
             headers=self.basic_headers(True),
@@ -44,6 +94,15 @@ class WebUi:
         return response.json()["msg"]
 
     def delete_group(self, group_name: str):
+        """
+Delete a specific file group.
+
+Args:
+    group_name (str): Name of the group to delete.
+
+Returns:
+    str: Server message about the deletion.
+"""
         response = requests.post(
             f"{self.base_url}/delete_group?group_name={group_name}",
             headers=self.basic_headers(True),
@@ -51,12 +110,28 @@ class WebUi:
         return response.json()["msg"]
 
     def list_groups(self):
+        """
+List all available file groups.
+
+Returns:
+    List[str]: List of group names.
+"""
         response = requests.get(
             f"{self.base_url}/list_kb_groups", headers=self.basic_headers(False)
         )
         return response.json()["data"]
 
     def upload_files(self, group_name: str, override: bool = True):
+        """
+Upload files to a specified group.
+
+Args:
+    group_name (str): Name of the group.
+    override (bool): Whether to override existing files (default: True).
+
+Returns:
+    Any: Data returned by the backend.
+"""
         response = requests.post(
             f"{self.base_url}/upload_files?group_name={group_name}&override={override}",
             headers=self.basic_headers(True),
@@ -64,6 +139,15 @@ class WebUi:
         return response.json()["data"]
 
     def list_files_in_group(self, group_name: str):
+        """
+List all files within a specific group.
+
+Args:
+    group_name (str): Name of the group.
+
+Returns:
+    List: List of file information.
+"""
         response = requests.get(
             f"{self.base_url}/list_files_in_group?group_name={group_name}&alive=True",
             headers=self.basic_headers(False),
@@ -71,6 +155,16 @@ class WebUi:
         return response.json()["data"]
 
     def delete_file(self, group_name: str, file_ids: list[str]):
+        """
+Delete specific files from a group.
+
+Args:
+    group_name (str): Name of the group.
+    file_ids (List[str]): IDs of files to delete.
+
+Returns:
+    str: Deletion result message.
+"""
         response = requests.post(
             f"{self.base_url}/delete_files_from_group",
             headers=self.basic_headers(True),
@@ -79,6 +173,16 @@ class WebUi:
         return response.json()["msg"]
 
     def gr_show_list(self, str_list: list, list_name: Union[str, list]):
+        """
+Display a list of strings as a Gradio DataFrame.
+
+Args:
+    str_list (List): List of strings or rows.
+    list_name (Union[str, List]): Column name(s) for the table.
+
+Returns:
+    gr.DataFrame: Gradio DataFrame component.
+"""
         if isinstance(list_name, str):
             headers = ["index", list_name]
             value = [[index, str_list[index]] for index in range(len(str_list))]
@@ -88,6 +192,12 @@ class WebUi:
         return gr.DataFrame(headers=headers, value=value)
 
     def create_ui(self):
+        """
+Build a Gradio-based file management UI, including tabs for group listing, file uploading, viewing, and deletion.
+
+Returns:
+    gr.Blocks: A complete Gradio application instance.
+"""
         with gr.Blocks(analytics_enabled=False) as demo:
             with gr.Tabs():
                 select_group_list = []

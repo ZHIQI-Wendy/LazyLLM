@@ -25,6 +25,7 @@ import yaml
 from typing import Literal
 
 class Status(Enum):
+    """An enumeration."""
     TBSubmitted = 0,
     InQueue = 1
     Running = 2,
@@ -35,18 +36,47 @@ class Status(Enum):
 
 
 class LazyLLMLaunchersBase(object, metaclass=LazyLLMRegisterMetaClass):
+    """An abstract base class that standardizes the lifecycle management of external processes or distributed jobs 
+(training/inference, etc.). Concrete launchers for different backends (local, SLURM, K8s, cloud, etc.) should 
+inherit and implement the core interfaces.
+
+Args:
+    None.
+"""
     Status = Status
 
     def __init__(self) -> None:
         self._id = str(uuid.uuid4().hex)
 
     def makejob(self, cmd):
+        """Create and return a job/process handle for the given command. Must be implemented by subclasses.
+
+Args:
+    cmd: The command or specification to create a job (e.g., string, argv list, or a job spec object).
+
+Raises:
+    NotImplementedError: The base class does not implement this method.
+"""
         raise NotImplementedError
 
     def launch(self, *args, **kw):
+        """Launch one or more jobs and register them under all_processes[self._id]. Must be implemented by subclasses.
+
+Args:
+    *args: Implementation-specific positional arguments.
+    **kw: Implementation-specific keyword arguments.
+
+Raises:
+    NotImplementedError: The base class does not implement this method.
+"""
         raise NotImplementedError
 
     def cleanup(self):
+        """Stop and clean up all jobs registered under this launcher, remove them from all_processes, and finally wait for termination.
+
+Args:
+    None.
+"""
         for k, v in self.all_processes[self._id]:
             v.stop()
             LOG.info(f"killed job:{k}")
@@ -62,10 +92,23 @@ class LazyLLMLaunchersBase(object, metaclass=LazyLLMRegisterMetaClass):
         raise RuntimeError('More than one tasks are found in one launcher!')
 
     def wait(self):
+        """Block until all jobs registered under this launcher finish.
+
+Args:
+    None.
+"""
         for _, v in self.all_processes[self._id]:
             v.wait()
 
     def clone(self):
+        """Deep-copy this launcher, assign a new unique _id, and return the cloned instance.
+
+Args:
+    None.
+
+Returns:
+    LazyLLMLaunchersBase: The cloned launcher.
+"""
         new = copy.deepcopy(self)
         new._id = str(uuid.uuid4().hex)
         return new
@@ -87,6 +130,13 @@ lazyllm.config.add('k8s_config_path', str, '', 'K8S_CONFIG_PATH')
 # store cmd, return message and command output.
 # LazyLLMCMD's post_function can get message form this class.
 class Job(object):
+    """Generic task scheduling executor.
+This class wraps a task that is launched via a launcher, with features like command fixing, output handling, sync control, and return value capturing.
+Args:
+    cmd (LazyLLMCMD): The command object to be executed.
+    launcher (Any): Launcher instance responsible for task dispatching.
+    sync (bool): Whether the task should run synchronously. Defaults to True.
+"""
     def __init__(self, cmd, launcher, *, sync=True):
         assert isinstance(cmd, LazyLLMCMD)
         self._origin_cmd = cmd
@@ -105,6 +155,13 @@ class Job(object):
             self.return_value = self
 
     def get_executable_cmd(self, *, fixed=False):
+        """Generate the final executable command.
+If a fixed command already exists, return it. Otherwise, wrap the original command and cache it as `_fixed_cmd`.
+Args:
+    fixed (bool): Whether to use the cached fixed command.
+Returns:
+    LazyLLMCMD: The executable command object.
+"""
         if fixed and hasattr(self, '_fixed_cmd'):
             LOG.info('Command is fixed!')
             return self._fixed_cmd
@@ -115,10 +172,22 @@ class Job(object):
         return self._fixed_cmd
 
     # interfaces
-    def stop(self): raise NotImplementedError
+    def stop(self):
+        """Stop the current job.
+This method is an interface placeholder and must be implemented by subclasses.
+"""
+        raise NotImplementedError
     @property
-    def status(self): raise NotImplementedError
-    def wait(self): pass
+    def status(self):
+        """Current job status.
+This property is abstract and must be implemented by subclasses.
+"""
+        raise NotImplementedError
+    def wait(self):
+        """Suspend the current thread until the job finishes.
+Empty implementation by default; can be overridden in subclasses.
+"""
+        pass
     def _wrap_cmd(self, cmd): return cmd
 
     def _start(self, *, fixed):
@@ -144,11 +213,21 @@ class Job(object):
                     break
 
     def restart(self, *, fixed=False):
+        """Restart the job by first stopping it and then restarting after a short delay.
+Args:
+    fixed (bool): Whether to reuse the fixed command object.
+"""
         self.stop()
         time.sleep(2)
         self._start(fixed=fixed)
 
     def start(self, *, restart=3, fixed=False):
+        """Public interface to start the job with optional retry on failure.
+If the job fails, retries execution based on the `restart` parameter.
+Args:
+    restart (int): Number of times to retry upon failure. Default is 3.
+    fixed (bool): Whether to use the fixed version of the command.
+"""
         self._start(fixed=fixed)
         if not (lazyllm.config['mode'] == lazyllm.Mode.Display or self._fixed_cmd.checkf(self)):
             if restart > 0:
@@ -198,6 +277,13 @@ class K8sLauncher(LazyLLMLaunchersBase):
     namespace = "default"
 
     class Job(Job):
+        """Generic task scheduling executor.
+This class wraps a task that is launched via a launcher, with features like command fixing, output handling, sync control, and return value capturing.
+Args:
+    cmd (LazyLLMCMD): The command object to be executed.
+    launcher (Any): Launcher instance responsible for task dispatching.
+    sync (bool): Whether the task should run synchronously. Defaults to True.
+"""
         def __init__(self, cmd, launcher, *, sync=True):
             super().__init__(cmd, launcher, sync=sync)
             self.deployment_name = f"deployment-{uuid.uuid4().hex[:8]}"
@@ -1050,10 +1136,29 @@ class K8sLauncher(LazyLLMLaunchersBase):
 
 @final
 class EmptyLauncher(LazyLLMLaunchersBase):
+    """This class is a subclass of ``LazyLLMLaunchersBase`` and serves as a local launcher.
+
+Args:
+    subprocess (bool): Whether to use a subprocess to launch. Default is ``False``.
+    sync (bool): Whether to execute jobs synchronously. Default is ``True``, otherwise it executes asynchronously.
+
+
+
+Examples:
+    >>> import lazyllm
+    >>> launcher = lazyllm.launchers.empty()
+    """
     all_processes = defaultdict(list)
 
     @final
     class Job(Job):
+        """Generic task scheduling executor.
+This class wraps a task that is launched via a launcher, with features like command fixing, output handling, sync control, and return value capturing.
+Args:
+    cmd (LazyLLMCMD): The command object to be executed.
+    launcher (Any): Launcher instance responsible for task dispatching.
+    sync (bool): Whether the task should run synchronously. Defaults to True.
+"""
         def __init__(self, cmd, launcher, *, sync=True):
             super(__class__, self).__init__(cmd, launcher, sync=sync)
 
@@ -1158,6 +1263,24 @@ class EmptyLauncher(LazyLLMLaunchersBase):
 
 @final
 class SlurmLauncher(LazyLLMLaunchersBase):
+    """This class is a subclass of ``LazyLLMLaunchersBase`` and acts as a Slurm launcher.
+
+Specifically, it provides methods to start and configure Slurm jobs, including specifying parameters such as the partition, number of nodes, number of processes, number of GPUs, and timeout settings.
+
+Args:
+    partition (str): The Slurm partition to use. Defaults to ``None``, in which case the default partition in ``lazyllm.config['partition']`` will be used. This configuration can be enabled by setting environment variables, such as ``export LAZYLLM_SLURM_PART=a100``.
+    nnode  (int): The number of nodes to use. Defaults to ``1``.
+    nproc (int): The number of processes per node. Defaults to ``1``.
+    ngpus (int): The number of GPUs per node. Defaults to ``None``, meaning no GPUs will be used.
+    timeout (int): The timeout for the job in seconds. Defaults to ``None``, in which case no timeout will be set.
+    sync (bool): Whether to execute the job synchronously. Defaults to ``True``, otherwise it will be executed asynchronously.
+
+
+
+Examples:
+    >>> import lazyllm
+    >>> launcher = lazyllm.launchers.slurm(partition='partition_name', nnode=1, nproc=1, ngpus=1, sync=False)
+    """
     # In order to obtain the jobid to monitor and terminate the job more
     # conveniently, only one srun command is allowed in one Job
     all_processes = defaultdict(list)
@@ -1165,6 +1288,13 @@ class SlurmLauncher(LazyLLMLaunchersBase):
 
     @final
     class Job(Job):
+        """Generic task scheduling executor.
+This class wraps a task that is launched via a launcher, with features like command fixing, output handling, sync control, and return value capturing.
+Args:
+    cmd (LazyLLMCMD): The command object to be executed.
+    launcher (Any): Launcher instance responsible for task dispatching.
+    sync (bool): Whether the task should run synchronously. Defaults to True.
+"""
         def __init__(self, cmd, launcher, *, sync=True, **kw):
             super(__class__, self).__init__(cmd, launcher, sync=sync)
             self.name = self._generate_name()
@@ -1266,10 +1396,10 @@ class SlurmLauncher(LazyLLMLaunchersBase):
         return result
 
     def get_idle_nodes(self, partion=None):
-        '''
+        """
         Obtain the current number of available nodes based on the available number of GPUs.
         Return a dictionary with node IP as the key and the number of available GPUs as the value.
-        '''
+        """
         if not partion:
             partion = self.partition
         num_can_use_nodes = self.num_can_use_nodes
@@ -1329,10 +1459,37 @@ class SlurmLauncher(LazyLLMLaunchersBase):
 
 @final
 class ScoLauncher(LazyLLMLaunchersBase):
+    """This class is a subclass of ``LazyLLMLaunchersBase`` and acts as a SCO launcher.
+
+Specifically, it provides methods to start and configure SCO jobs, including specifying parameters such as the partition, workspace name, framework type, number of nodes, number of processes, number of GPUs, and whether to use torchrun or not.
+
+Args:
+    partition (str): The Slurm partition to use. Defaults to ``None``, in which case the default partition in ``lazyllm.config['partition']`` will be used. This configuration can be enabled by setting environment variables, such as ``export LAZYLLM_SLURM_PART=a100``.
+    workspace_name (str): The workspace name on SCO. Defaults to the configuration in ``lazyllm.config['sco.workspace']``. This configuration can be enabled by setting environment variables, such as ``export LAZYLLM_SCO_WORKSPACE=myspace``.
+    framework (str): The framework type to use, for example, ``pt`` for PyTorch. Defaults to ``pt``.
+    nnode  (int): The number of nodes to use. Defaults to ``1``.
+    nproc (int): The number of processes per node. Defaults to ``1``.
+    ngpus (int): The number of GPUs per node. Defaults to ``1``, using 1 GPU.
+    torchrun (bool): Whether to start the job with ``torchrun``. Defaults to ``False``.
+    sync (bool): Whether to execute the job synchronously. Defaults to ``True``, otherwise it will be executed asynchronously.
+
+
+
+Examples:
+    >>> import lazyllm
+    >>> launcher = lazyllm.launchers.sco(partition='partition_name', nnode=1, nproc=1, ngpus=1, sync=False)
+    """
     all_processes = defaultdict(list)
 
     @final
     class Job(Job):
+        """Generic task scheduling executor.
+This class wraps a task that is launched via a launcher, with features like command fixing, output handling, sync control, and return value capturing.
+Args:
+    cmd (LazyLLMCMD): The command object to be executed.
+    launcher (Any): Launcher instance responsible for task dispatching.
+    sync (bool): Whether the task should run synchronously. Defaults to True.
+"""
         def __init__(self, cmd, launcher, *, sync=True):
             super(__class__, self).__init__(cmd, launcher, sync=sync)
             # SCO job name must start with a letter
@@ -1516,6 +1673,23 @@ class ScoLauncher(LazyLLMLaunchersBase):
 
 
 class RemoteLauncher(LazyLLMLaunchersBase):
+    """This class is a subclass of ``LazyLLMLaunchersBase`` and acts as a proxy for a remote launcher. It dynamically creates and returns an instance of the corresponding launcher based on the ``lazyllm.config['launcher']`` entry in the configuration file (for example: ``SlurmLauncher`` or ``ScoLauncher``).
+
+Args:
+    *args: Positional arguments that will be passed to the constructor of the dynamically created launcher.
+    sync (bool): Whether to execute the job synchronously. Defaults to ``False``.
+    **kwargs: Keyword arguments that will be passed to the constructor of the dynamically created launcher.
+
+Notes: 
+    - ``RemoteLauncher`` is not a direct launcher but dynamically creates a launcher based on the configuration. 
+    - The ``lazyllm.config['launcher']`` in the configuration file specifies a launcher class name present in the ``lazyllm.launchers`` module. This configuration can be set by setting the environment variable ``LAZYLLM_DEAULT_LAUNCHER``. For example: ``export LAZYLLM_DEAULT_LAUNCHER=sco``, ``export LAZYLLM_DEAULT_LAUNCHER=slurm``.
+
+
+
+Examples:
+    >>> import lazyllm
+    >>> launcher = lazyllm.launchers.remote(ngpus=1)
+    """
     def __new__(cls, *args, sync=False, ngpus=1, **kwargs):
         return getattr(lazyllm.launchers, lazyllm.config['launcher'])(*args, sync=sync, ngpus=ngpus, **kwargs)
 

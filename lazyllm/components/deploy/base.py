@@ -24,6 +24,27 @@ class LazyLLMDeployBase(ComponentBase):
 
 
 class DummyDeploy(LazyLLMDeployBase, flows.Pipeline):
+    """DummyDeploy(launcher=launchers.remote(sync=False), *, stream=False, **kw)
+
+A mock deployment class for testing purposes. It extends both `LazyLLMDeployBase` and `flows.Pipeline`,
+simulating a simple pipeline-style deployable service with optional streaming support.
+
+This class is primarily intended for internal testing and demonstration. It receives inputs in the format defined
+by `message_format`, and returns a dummy response or a streaming response depending on the `stream` flag.
+
+Attributes:
+- keys_name_handle (dict): Mapping of input keys for request formatting.
+- message_format (dict): Default request template including input and generation parameters.
+
+Parameters:
+- launcher: Deployment launcher instance, defaulting to `launchers.remote(sync=False)`.
+- stream (bool): Whether to simulate streaming output.
+- kw: Additional keyword arguments passed to the superclass.
+
+Methods:
+- __call__(*args): Starts the deployment and returns the service URL.
+- __repr__(): Returns a string representation of the underlying pipeline.
+"""
     keys_name_handle = {'inputs': 'inputs'}
     message_format = {
         'inputs': '',

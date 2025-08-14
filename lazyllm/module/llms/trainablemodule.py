@@ -216,6 +216,166 @@ class _TrainableModuleImpl(ModuleBase, _UrlHelper):
 
 
 class TrainableModule(UrlModule):
+    """Trainable module, all models (including LLM, Embedding, etc.) are served through TrainableModule
+
+<span style="font-size: 20px;">**`TrainableModule(base_model='', target_path='', *, stream=False, return_trace=False)`**</span>
+
+
+Args:
+    base_model (str): Name or path of the base model. 
+    target_path (str): Path to save the fine-tuning task. 
+    source (str): Model source. If not set, it will read the value from the environment variable LAZYLLM_MODEL_SOURCE.
+    stream (bool): Whether to output stream. 
+    return_trace (bool): Record the results in trace.
+
+
+<span style="font-size: 20px;">**`TrainableModule.trainset(v):`**</span>
+
+Set the training set for TrainableModule
+
+
+Args:
+    v (str): Path to the training/fine-tuning dataset.
+
+**Examples:**
+
+```python
+>>> import lazyllm
+>>> m = lazyllm.module.TrainableModule().finetune_method(finetune.dummy).trainset('/file/to/path').deploy_method(None).mode('finetune')
+>>> m.update()
+INFO: (lazyllm.launcher) PID: dummy finetune!, and init-args is {}
+```
+
+<span style="font-size: 20px;">**`TrainableModule.train_method(v, **kw):`**</span>
+
+Set the training method for TrainableModule. Continued pre-training is not supported yet, expected to be available in the next version.
+
+Args:
+    v (LazyLLMTrainBase): Training method, options include ``train.auto`` etc.
+    kw (**dict): Parameters required by the training method, corresponding to v.
+
+<span style="font-size: 20px;">**`TrainableModule.finetune_method(v, **kw):`**</span>
+
+Set the fine-tuning method and its parameters for TrainableModule.
+
+Args:
+    v (LazyLLMFinetuneBase): Fine-tuning method, options include ``finetune.auto`` / ``finetune.alpacalora`` / ``finetune.collie`` etc.
+    kw (**dict): Parameters required by the fine-tuning method, corresponding to v.
+
+**Examples:**
+            
+```python
+>>> import lazyllm
+>>> m = lazyllm.module.TrainableModule().finetune_method(finetune.dummy).deploy_method(None).mode('finetune')
+>>> m.update()
+INFO: (lazyllm.launcher) PID: dummy finetune!, and init-args is {}                
+```
+
+<span style="font-size: 20px;">**`TrainableModule.deploy_method(v, **kw):`**</span>
+
+Set the deployment method and its parameters for TrainableModule.
+
+Args:
+    v (LazyLLMDeployBase): Deployment method, options include ``deploy.auto`` / ``deploy.lightllm`` / ``deploy.vllm`` etc.
+    kw (**dict): Parameters required by the deployment method, corresponding to v.
+
+**Examples:**
+
+```python
+>>> import lazyllm
+>>> m = lazyllm.module.TrainableModule().deploy_method(deploy.dummy).mode('finetune')
+>>> m.evalset([1, 2, 3])
+>>> m.update()
+INFO: (lazyllm.launcher) PID: dummy finetune!, and init-args is {}
+>>> m.eval_result
+["reply for 1, and parameters is {'do_sample': False, 'temperature': 0.1}", "reply for 2, and parameters is {'do_sample': False, 'temperature': 0.1}", "reply for 3, and parameters is {'do_sample': False, 'temperature': 0.1}"]
+```                
+
+
+<span style="font-size: 20px;">**`TrainableModule.mode(v):`**</span>
+
+Set whether to execute training or fine-tuning during update for TrainableModule.
+
+Args:
+    v (str): Sets whether to execute training or fine-tuning during update, options are 'finetune' and 'train', default is 'finetune'.
+
+**Examples:**
+
+```python
+>>> import lazyllm
+>>> m = lazyllm.module.TrainableModule().finetune_method(finetune.dummy).deploy_method(None).mode('finetune')
+>>> m.update()
+INFO: (lazyllm.launcher) PID: dummy finetune!, and init-args is {}
+```    
+
+<span style="font-size: 20px;">**`eval(*, recursive=True)`**</span>
+Evaluate the module (and all its submodules). This function takes effect after the module has set an evaluation set through evalset.
+
+Args:
+    recursive (bool) :Whether to recursively evaluate all submodules, default is True.                         
+
+<span style="font-size: 20px;">**`evalset(evalset, load_f=None, collect_f=<function ModuleBase.<lambda>>)`**</span>
+
+Set the evaluation set for the Module. Modules that have been set with an evaluation set will be evaluated during ``update`` or ``eval``, and the evaluation results will be stored in the eval_result variable. 
+
+
+<span style="font-size: 18px;">&ensp;**`evalset(evalset, collect_f=lambda x: ...)→ None `**</span>
+
+
+Args:
+    evalset (list) :Evaluation set
+    collect_f (Callable) :Post-processing method for evaluation results, no post-processing by default.
+
+
+
+<span style="font-size: 18px;">&ensp;**`evalset(evalset, load_f=None, collect_f=lambda x: ...)→ None`**</span>
+
+
+Args:
+    evalset (str) :Path to the evaluation set
+    load_f (Callable) :Method for loading the evaluation set, including parsing file formats and converting to a list
+    collect_f (Callable) :Post-processing method for evaluation results, no post-processing by default.
+
+**Examples:**
+
+```python
+>>> import lazyllm
+>>> m = lazyllm.module.TrainableModule().deploy_method(deploy.dummy)
+>>> m.evalset([1, 2, 3])
+>>> m.update()
+INFO: (lazyllm.launcher) PID: dummy finetune!, and init-args is {}
+>>> m.eval_result
+["reply for 1, and parameters is {'do_sample': False, 'temperature': 0.1}", "reply for 2, and parameters is {'do_sample': False, 'temperature': 0.1}", "reply for 3, and parameters is {'do_sample': False, 'temperature': 0.1}"]
+```
+
+<span style="font-size: 20px;">**`restart() `**</span>
+
+Restart the module and all its submodules.
+
+**Examples:**
+
+```python
+>>> import lazyllm
+>>> m = lazyllm.module.TrainableModule().deploy_method(deploy.dummy)
+>>> m.restart()
+>>> m(1)
+"reply for 1, and parameters is {'do_sample': False, 'temperature': 0.1}"
+```
+
+<span style="font-size: 20px;">**`start() `**</span> 
+
+Deploy the module and all its submodules.
+
+**Examples:**
+
+```python
+import lazyllm
+m = lazyllm.module.TrainableModule().deploy_method(deploy.dummy)
+m.start()
+m(1)
+"reply for 1, and parameters is {'do_sample': False, 'temperature': 0.1}"
+```                                  
+"""
     builder_keys = _TrainableModuleImpl.builder_keys
 
     def __init__(self, base_model: Option = '', target_path='', *, stream: Union[bool, Dict[str, str]] = False,
@@ -248,9 +408,23 @@ class TrainableModule(UrlModule):
         return ModelManager.get_model_type(self.base_model).upper()
 
     def get_all_models(self):
+        """get_all_models() -> List[str]
+
+Returns a list of all fine-tuned model paths under the current target path.
+
+Returns:
+- List[str]: A list of fine-tuned model identifiers or directories.
+"""
         return self._impl._get_all_finetuned_models()
 
     def set_specific_finetuned_model(self, model_path):
+        """set_specific_finetuned_model(model_path: str) -> None
+
+Sets the model to be used from a specific fine-tuned model path.
+
+Args:
+- model_path (str): The path to the fine-tuned model to use.
+"""
         return self._impl._set_specific_finetuned_model(model_path)
 
     @property
@@ -263,10 +437,30 @@ class TrainableModule(UrlModule):
             return lazyllm.deploy.AutoDeploy
 
     def wait(self):
+        """Wait for the model deployment task to complete. This method blocks the current thread until the deployment is finished.
+
+
+Examples:
+    >>> import lazyllm
+    >>> class Mywait(lazyllm.module.llms.TrainableModule):
+    ...    def forward(self):
+    ...        self.wait()
+    """
         if launcher := self._impl._launchers['default'].get('deploy'):
             launcher.wait()
 
     def stop(self, task_name: Optional[str] = None):
+        """Pause a specific task of the model.
+Args:
+    task_name (str): The name of the task to pause. Defaults to None (pauses the 'deploy' task by default).
+
+
+Examples:
+    >>> import lazyllm
+    >>> class Mystop(lazyllm.module.llms.TrainableModule):
+    ...    def forward(self, task):
+    ...        self.stop(task)
+    """
         try:
             launcher = self._impl._launchers['manual' if task_name else 'default'][task_name or 'deploy']
         except KeyError:
@@ -275,11 +469,33 @@ class TrainableModule(UrlModule):
         launcher.cleanup()
 
     def status(self, task_name: Optional[str] = None):
+        """status(task_name: Optional[str] = None) -> str
+
+Returns the current status of a specific task in the module.
+
+Args:
+- task_name (Optional[str]): Name of the task (e.g., 'deploy'). Defaults to 'deploy' if not provided.
+
+Returns:
+- str: Status string such as 'running', 'finished', or 'stopped'.
+"""
         launcher = self._impl._launchers['manual' if task_name else 'default'][task_name or 'deploy']
         return launcher.status
 
     # modify default value to ''
     def prompt(self, prompt: Union[str, dict] = '', history: Optional[List[List[str]]] = None):
+        """Processes the input prompt and generates a format compatible with the model.
+Args:
+    prompt (str): The input prompt. Defaults to an empty string.
+    history (List): Conversation history.
+
+
+Examples:
+    >>> import lazyllm
+    >>> class Myprompt(lazyllm.module.llms.TrainableModule):
+    ...    def forward(self, prompt, history):
+    ...        self.prompt(prompt,history)
+    """
         if self.base_model != '' and prompt == '' and ModelManager.get_model_type(self.base_model) != 'llm':
             prompt = None
         clear_system = isinstance(prompt, dict) and prompt.get('drop_builtin_system')
@@ -415,7 +631,8 @@ class TrainableModule(UrlModule):
             a. If 'tool_start_token' exists, the boundary of tool_calls can be found according to 'tool_start_token',
                and then the function name and arguments of tool_calls can be extracted according to 'tool_args_token'
                and 'tool_end_token'.
-            b. If 'tool_start_token' does not exist, the text is segmented using '\n' according to the incoming tools
+            b. If 'tool_start_token' does not exist, the text is segmented using '
+' according to the incoming tools
                information, and then processed according to the rules.
         """
         content, tool_calls = self._extract_tool_calls(output)
@@ -455,6 +672,19 @@ class TrainableModule(UrlModule):
 
     def forward(self, __input: Union[Tuple[Union[str, Dict], str], str, Dict] = package(),
                 *, llm_chat_history=None, lazyllm_files=None, tools=None, stream_output=False, **kw):
+        """Supports handling various input formats, automatically builds the input structure required by the model, and adapts to multimodal scenarios.
+
+
+Examples:
+    >>> import lazyllm
+    >>> from lazyllm.module import TrainableModule
+    >>> class MyModule(TrainableModule):
+    ...     def forward(self, __input, **kw):
+    ...         return f"processed: {__input}"
+    ...
+    >>> MyModule()("Hello")
+    'processed: Hello'
+    """
         __input, files = self._get_files(__input, lazyllm_files)
         text_input_for_token_usage = __input = self._prompt.generate_prompt(__input, llm_chat_history, tools)
         url = self._url
@@ -532,4 +762,13 @@ class TrainableModule(UrlModule):
         return paras
 
     def set_default_parameters(self, *, optional_keys: List[str] = [], **kw):
+        """set_default_parameters(*, optional_keys: List[str] = [], **kw) -> None
+
+Sets the default parameters to be used during inference or evaluation.
+
+Args:
+- optional_keys (List[str]): A list of optional keys to allow additional parameters without error.
+- **kw: Key-value pairs for default parameters such as temperature, top_k, etc.
+
+"""
         self._modify_parameters(self.template_message, kw, optional_keys=optional_keys)

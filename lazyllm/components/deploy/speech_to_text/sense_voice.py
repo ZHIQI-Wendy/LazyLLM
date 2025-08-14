@@ -12,6 +12,31 @@ from typing import Optional
 supported_formats = ('.mp3', '.wav', '.flac', '.m4a', '.aac', '.ogg', '.wma')
 
 class SenseVoice(object):
+    """SenseVoice(base_path, source=None, init=False)
+
+A speech-to-text wrapper using FunASR models for lazy initialization and audio transcription.
+This class supports automatic model downloading, safe initialization, and inference from audio paths or URLs.
+
+Parameters:
+- base_path (str): Path or model identifier to download the STT model.
+- source (str, optional): Model source name; defaults to `lazyllm.config['model_source']`.
+- init (bool): Whether to initialize the model immediately on creation.
+
+Attributes:
+- base_path (str): Final resolved path of the model after download.
+- model: Loaded FunASR model instance.
+- init_flag: A lazy flag used to ensure model is only loaded once.
+
+Methods:
+- __call__(string: str | dict) -> str:
+    Transcribes the input audio file or URL to text. Accepts base64-encoded content, file paths, or URLs.
+- load_stt():
+    Loads the FunASR speech-to-text model and related VAD (Voice Activity Detection).
+- rebuild(base_path, init):
+    Rebuilds the class instance (used for serialization).
+- __reduce__():
+    Supports pickling by ensuring proper lazy-loading on deserialization.
+"""
     def __init__(self, base_path, source=None, init=False):
         source = lazyllm.config['model_source'] if not source else source
         self.base_path = ModelManager(source).download(base_path) or ''
@@ -21,6 +46,20 @@ class SenseVoice(object):
             lazyllm.call_once(self.init_flag, self.load_stt)
 
     def load_stt(self):
+        """load_stt()
+
+Loads the speech-to-text model using FunASR with optional support for Huawei NPU via `torch_npu`.
+
+The method initializes the model with the following characteristics:
+- Uses `fsmn-vad` for voice activity detection with long utterance support.
+- Sets maximum single segment time to 30 seconds.
+- Selects `cuda:0` as the default inference device.
+
+The model is stored in `self.model` and will be used to transcribe audio input.
+
+Note:
+If `torch_npu` is available in the environment, the function attempts to load it for potential Huawei Ascend acceleration.
+"""
         if importlib.util.find_spec("torch_npu") is not None:
             import torch_npu  # noqa F401
             from torch_npu.contrib import transfer_to_npu  # noqa F401
@@ -65,6 +104,20 @@ class SenseVoice(object):
 
     @classmethod
     def rebuild(cls, base_path, init):
+        """rebuild(base_path: str, init: bool) -> SenseVoice
+
+Class method used to reconstruct a `SenseVoice` instance during deserialization (e.g., when using `cloudpickle`).
+
+Parameters:
+- base_path (str): Path to the speech-to-text model.
+- init (bool): Whether to immediately initialize and load the model upon creation.
+
+Returns:
+- A new instance of `SenseVoice` with the specified configuration.
+
+Note:
+This method is internally used to support model serialization and multiprocessing compatibility.
+"""
         return cls(base_path, init=init)
 
     def __reduce__(self):
@@ -72,6 +125,39 @@ class SenseVoice(object):
         return SenseVoice.rebuild, (self.base_path, init)
 
 class SenseVoiceDeploy(LazyLLMDeployBase):
+    """SenseVoice Model Deployment Class. This class is used to deploy the SenseVoice model to a specified server for network invocation.
+
+`__init__(self, launcher=None)`
+Constructor, initializes the deployment class.
+
+Args:
+    launcher (lazyllm.launcher): An instance of the launcher used to start the remote service.
+
+`__call__(self, finetuned_model=None, base_model=None)`
+Deploys the model and returns the remote service address.
+
+Args:
+    finetuned_model (str): If provided, this model will be used for deployment; if not provided or the path is invalid, `base_model` will be used.
+    base_model (str): The default model, which will be used for deployment if `finetuned_model` is invalid.
+    Return (str): The URL address of the remote service.
+
+Notes:
+    - Input for infer: `str`. The audio path or link.
+    - Return of infer: `str`. The recognized content.
+    - Supported models: [SenseVoiceSmall](https://huggingface.co/FunAudioLLM/SenseVoiceSmall)
+
+
+Examples:
+    >>> import os
+    >>> import lazyllm
+    >>> from lazyllm import launchers, UrlModule
+    >>> from lazyllm.components import SenseVoiceDeploy
+    >>> deployer = SenseVoiceDeploy(launchers.remote())
+    >>> url = deployer(base_model='SenseVoiceSmall')
+    >>> model = UrlModule(url=url)
+    >>> model('path/to/audio') # support format: .mp3, .wav
+    ... xxxxxxxxxxxxxxxx
+    """
     keys_name_handle = {
         'inputs': 'inputs',
         'audio': 'audio',

@@ -19,12 +19,54 @@ class HttpExecutorResponse:
         return any(v in content_type for v in file_content_types)
 
     def get_content_type(self) -> str:
+        """Get the content type of the HTTP response.
+
+Extracts the 'content-type' field value from the response headers to determine the type of response content.
+
+Returns:
+    str: The content type of the response, or empty string if not found.
+
+
+Examples:
+    >>> from lazyllm.tools.http_request.http_executor_response import HttpExecutorResponse
+    >>> import httpx
+    >>> response = httpx.Response(200, headers={'content-type': 'application/json'})
+    >>> http_response = HttpExecutorResponse(response)
+    >>> content_type = http_response.get_content_type()
+    >>> print(content_type)
+    ... 'application/json'
+    """
         return self.headers.get('content-type', '')
 
     def extract_file(self) -> tuple[str, bytes]:
-        """
-        extract file from response if content type is file related
-        """
+        """Extract file content from HTTP response.
+
+If the response content type is file-related (such as image, audio, video), extracts the content type and binary data of the file.
+
+Returns:
+    tuple[str, bytes]: A tuple containing the content type and binary data of the file. If not a file type, returns empty string and empty bytes.
+
+
+Examples:
+    >>> from lazyllm.tools.http_request.http_executor_response import HttpExecutorResponse
+    >>> import httpx
+    >>> # 模拟图片响应
+    >>> response = httpx.Response(200, headers={'content-type': 'image/jpeg'}, content=b'fake_image_data')
+    >>> http_response = HttpExecutorResponse(response)
+    >>> content_type, file_data = http_response.extract_file()
+    >>> print(content_type)
+    ... 'image/jpeg'
+    >>> print(len(file_data))
+    ... 15
+    >>> # 模拟JSON响应
+    >>> response = httpx.Response(200, headers={'content-type': 'application/json'}, content=b'{"key": "value"}')
+    >>> http_response = HttpExecutorResponse(response)
+    >>> content_type, file_data = http_response.extract_file()
+    >>> print(content_type)
+    ... ''
+    >>> print(file_data)
+    ... b''
+    """
         if self.is_file:
             return self.get_content_type(), self.body
 

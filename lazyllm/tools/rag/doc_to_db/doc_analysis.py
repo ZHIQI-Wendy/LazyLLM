@@ -11,6 +11,13 @@ import tiktoken
 
 
 class DocInfoSchemaItem(TypedDict):
+    """Definition of a single field in the document information schema.
+
+Args:
+    key (str): The name of the field.
+    desc (str): The description of the field's meaning.
+    type (str): The data type of the field.
+"""
     key: str
     desc: str
     type: str
@@ -39,6 +46,22 @@ def trim_content_by_token_num(tokenizer, doc_content: str, token_limit: int):
 
 
 class DocGenreAnalyser:
+    """Used to analyze the genre/type of documents, such as contracts, resumes, invoices, etc. It reads the document content and uses a language model to classify its type.
+
+Args:
+    maximum_doc_num (int): Maximum number of documents to analyze, default is 3.
+
+
+Examples:
+    >>> import lazyllm
+    >>> from lazyllm.components.doc_info_extractor import DocGenreAnalyser
+    >>> from lazyllm import OnlineChatModule
+    >>> m = OnlineChatModule(source="openai")
+    >>> analyser = DocGenreAnalyser()
+    >>> genre = analyser.analyse_doc_genre(m, "path/to/document.txt")
+    >>> print(genre)
+    contract
+    """
     ONE_DOC_TOKEN_LIMIT = 10000
 
     def __init__(self, maximum_doc_num=3):
@@ -83,6 +106,21 @@ class DocGenreAnalyser:
 
 
 class DocInfoSchemaAnalyser:
+    """Used to extract key-value schema from documents, such as field names, descriptions, and data types. Useful for building structured information extraction templates.
+
+Args:
+    maximum_doc_num (int): Maximum number of documents to be used for generating schema, default is 3.
+
+
+Examples:
+    >>> from lazyllm.components.doc_info_extractor import DocInfoSchemaAnalyser
+    >>> from lazyllm import OnlineChatModule
+    >>> analyser = DocInfoSchemaAnalyser()
+    >>> m = OnlineChatModule(source="openai")
+    >>> schema = analyser.analyse_info_schema(m, "contract", ["doc1.txt", "doc2.txt"])
+    >>> print(schema)
+    [{'key': 'party_a', 'desc': 'The first party', 'type': 'str'}, ...]
+    """
     ONE_DOC_TOKEN_LIMIT = 30000
 
     def __init__(self, maximum_doc_num=3):
@@ -134,6 +172,17 @@ class DocInfoSchemaAnalyser:
     def analyse_info_schema(
         self, llm: Union[OnlineChatModule, TrainableModule], doc_type: str, doc_paths: list[str]
     ) -> DocInfoSchema:
+        """Method for analyzing document information schema, used to extract structural definitions of key information fields from documents of a specified type.
+
+Args:
+    llm (Union[OnlineChatModule, TrainableModule]): LLM model used to generate information schema
+    doc_type (str): Document type, used to guide the LLM in generating corresponding information schema
+    doc_paths (list[str]): List of document paths, used as information sources for analysis
+
+**Returns:**
+
+- DocInfoSchema: List of schema containing key information field definitions, each field includes key, desc, and type attributes
+"""
         RANDOM_SEED = 1331
         if len(doc_paths) > self._maximum_doc_num:
             doc_paths.sort()
@@ -151,6 +200,22 @@ class DocInfoSchemaAnalyser:
 
 
 class DocInfoExtractor:
+    """Extracts specific values for key fields from a document according to a provided schema. Returns a dictionary of key-value pairs.
+
+Args:
+    None
+
+
+Examples:
+    >>> from lazyllm.components.doc_info_extractor import DocInfoExtractor
+    >>> from lazyllm import OnlineChatModule
+    >>> extractor = DocInfoExtractor()
+    >>> m = OnlineChatModule(source="openai")
+    >>> schema = [{"key": "party_a", "desc": "Party A name", "type": "str"}]
+    >>> info = extractor.extract_doc_info(m, "contract.txt", schema)
+    >>> print(info)
+    {'party_a': 'ABC Corp'}
+    """
     ONE_DOC_TOKEN_LIMIT = 50000
 
     def __init__(self):
@@ -202,6 +267,19 @@ class DocInfoExtractor:
         info_schema: DocInfoSchema,
         extra_desc: str = "",
     ) -> dict:
+        """Extracts specific key information values from a document according to a provided schema.
+
+This method uses a large language model to analyze document content and extract corresponding information values based on predefined field structure, returning a key-value dictionary.
+
+Args:
+    llm (Union[OnlineChatModule, TrainableModule]): The large language model used for document information extraction.
+    doc_path (str): Path to the document to be analyzed.
+    info_schema (DocInfoSchema): Field structure definition containing the information to be extracted.
+    extra_desc (str, optional): Additional description information to guide the extraction process. Defaults to empty string.
+
+Returns:
+    dict: Extracted key information dictionary with field names as keys and corresponding information values as values.
+"""
         extraction_query = self._gen_extraction_query(doc_path, info_schema, extra_desc)
         response = llm(extraction_query)
         info: dict = self._extract_kws_value_from_response(response)

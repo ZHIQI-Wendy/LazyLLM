@@ -13,6 +13,26 @@ lazyllm.config.add('mindie_home', str, '', 'MINDIE_HOME')
 verify_fastapi_func = verify_func_factory(error_message='Service Startup Failed',
                                           running_message='Daemon start success')
 class Mindie(LazyLLMDeployBase):
+    """This class is a subclass of ``LazyLLMDeployBase``, designed for deploying and managing the MindIE large language model inference service. It encapsulates the full workflow including configuration generation, process launching, and API interaction for the MindIE service.
+Args:
+    trust_remote_code (bool): Whether to trust remote code (e.g., from HuggingFace models). Default is ``True``.
+    launcher: Instance of the task launcher. Default is ``launchers.remote()``.
+    log_path (str): Path to save logs. If ``None``, logs will not be saved.
+    **kw: Other configuration parameters. Supports the following keys:
+        - npuDeviceIds: List of NPU device IDs (e.g., ``[[0,1]]`` indicates using 2 devices)
+        - worldSize: Model parallelism size
+        - port: Service port (set to ``'auto'`` for auto-assignment between 30000–40000)
+        - maxSeqLen: Maximum sequence length
+        - maxInputTokenLen: Maximum number of tokens per input
+        - maxPrefillTokens: Maximum number of prefill tokens
+        - config: Custom configuration file
+Note:
+    You must set the environment variable ``LAZYLLM_MINDIE_HOME`` to point to the MindIE installation directory. 
+    If ``finetuned_model`` is not specified or the path is invalid, it will automatically fall back to ``base_model``.
+
+
+Examples:
+    """
     keys_name_handle = {
         'inputs': 'prompt',
     }

@@ -15,6 +15,36 @@ from lazyllm.thirdparty import chromadb
 
 
 class ChromadbStore(StoreBase):
+    """
+Inherits from the abstract base class StoreBase. This class is mainly used to store and manage document nodes (DocNode), supporting operations such as node addition, deletion, modification, query, index management, and persistent storage.
+Args:
+    group_embed_keys (Dict[str, Set[str]]): Specifies the embedding fields associated with each document group.
+    embed (Dict[str, Callable]): A dictionary of embedding generation functions, supporting multiple embedding sources.
+    embed_dims (Dict[str, int]): The embedding dimensions corresponding to each embedding type.
+    dir (str): Path to the chromadb persistent storage directory.
+    kwargs (Dict): Additional optional parameters passed to the parent class or internal components.
+
+
+Examples:
+    
+    >>> from lazyllm.tools.rag.chroma_store import ChromadbStore
+    >>> from typing import Dict, List
+    >>> import numpy as np
+    >>> store = ChromadbStore(
+    ...     group_embed_keys={"articles": {"title_embed", "content_embed"}},
+    ...     embed={
+    ...         "title_embed": lambda x: np.random.rand(128).tolist(),
+    ...         "content_embed": lambda x: np.random.rand(256).tolist()
+    ...     },
+    ...     embed_dims={"title_embed": 128, "content_embed": 256},
+    ...     dir="./chroma_data"
+    ... )
+    >>> store.update_nodes([node1, node2])
+    >>> results = store.query(query_text="文档内容", group_name="articles", top_k=2)
+    >>> for node in results:
+    ...     print(f"找到文档: {node._content[:20]}...")
+    >>> store.remove_nodes(doc_ids=["doc1"])
+    """
     def __init__(self, group_embed_keys: Dict[str, Set[str]], embed: Dict[str, Callable],
                  embed_dims: Dict[str, int], dir: str, **kwargs) -> None:
         self._db_client = chromadb.PersistentClient(path=dir)
@@ -34,12 +64,24 @@ class ChromadbStore(StoreBase):
 
     @override
     def update_nodes(self, nodes: List[DocNode]) -> None:
+        """
+Update a group of DocNode objects.
+Args:
+    nodes (DocNode): The list of DocNode objects to be updated.
+"""
         self._map_store.update_nodes(nodes)
         self._save_nodes(nodes)
 
     @override
     def remove_nodes(self, doc_ids: List[str], group_name: Optional[str] = None,
                      uids: Optional[List[str]] = None) -> None:
+        """
+Delete nodes based on specified conditions.
+Args:
+    doc_ids (str): Delete by document ID.
+    group_name (str): Specify the group name for deletion.
+    uids (str): Delete by unique node ID.
+"""
         nodes = self._map_store.get_nodes(group_name=group_name, doc_ids=doc_ids, uids=uids)
         group2uids = defaultdict(list)
         for node in nodes:
@@ -50,6 +92,12 @@ class ChromadbStore(StoreBase):
 
     @override
     def update_doc_meta(self, doc_id: str, metadata: dict) -> None:
+        """
+Update the metadata of a document.
+Args:
+    doc_id (str): The ID of the document to be updated.
+    metadata (dict): The new metadata (key-value pairs).
+"""
         self._map_store.update_doc_meta(doc_id=doc_id, metadata=metadata)
         for group in self.activated_groups():
             nodes = self.get_nodes(group_name=group, doc_ids=[doc_id])
@@ -58,40 +106,86 @@ class ChromadbStore(StoreBase):
     @override
     def get_nodes(self, group_name: Optional[str] = None, uids: Optional[List[str]] = None,
                   doc_ids: Optional[Set] = None, **kwargs) -> List[DocNode]:
+        """
+Query nodes based on specified conditions.
+Args:
+    group_name (str): The name of the group to which the nodes belong.
+    uids (List[str]): A list of unique node IDs.
+    doc_ids (Set[str]): A set of document IDs.
+    **kwargs: Additional optional parameters.
+"""
         return self._map_store.get_nodes(group_name, uids, doc_ids, **kwargs)
 
     @override
     def activate_group(self, group_names: Union[str, List[str]]) -> bool:
+        """
+Activate the specified group.
+Args:
+    group_names([str, List[str]]): Activate by group name.
+"""
         return self._map_store.activate_group(group_names)
 
     @override
     def activated_groups(self):
+        """
+Activate groups. Return the list of currently activated group names.
+"""
         return self._map_store.activated_groups()
 
     @override
     def is_group_active(self, name: str) -> bool:
+        """
+Check whether the specified group is active.
+Args:
+    name (str): The name of the group.
+"""
         return self._map_store.is_group_active(name)
 
     @override
     def all_groups(self) -> List[str]:
+        """
+Return the list of all group names.
+"""
         return self._map_store.all_groups()
 
     @override
     def query(self, *args, **kwargs) -> List[DocNode]:
+        """
+Execute a query using the default index.
+Args:
+    args: Query parameters.
+    kwargs: Additional optional parameters.
+"""
         return self.get_index('default').query(*args, **kwargs)
 
     @override
     def register_index(self, type: str, index: IndexBase) -> None:
+        """
+Register a custom index.
+Args:
+    type (str): The name of the index type.
+    index (IndexBase): An object implementing the IndexBase interface.
+"""
         self._name2index[type] = index
 
     @override
     def get_index(self, type: Optional[str] = None) -> Optional[IndexBase]:
+        """
+Get the index of the specified type.
+Args:
+    type (str): The type of the index.
+"""
         if type is None:
             type = 'default'
         return self._name2index.get(type)
 
     @override
     def clear_cache(self, group_names: Optional[List[str]] = None):
+        """
+Clear the ChromaDB collections and memory cache for specified groups or all groups.
+Args:
+    group_names (List[str]): List of group names. If None, clear all groups.
+"""
         if group_names is None:
             for group_name in self.activated_groups():
                 self._db_client.delete_collection(name=group_name)

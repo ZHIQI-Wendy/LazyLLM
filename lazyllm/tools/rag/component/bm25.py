@@ -6,7 +6,13 @@ from .stopwords import STOPWORDS_CHINESE
 
 
 class BM25:
-    """A BM25 retriever that uses the BM25 algorithm to retrieve nodes."""
+    """A retriever based on the BM25 algorithm that retrieves the most relevant text nodes from a given list of nodes.
+
+Args:
+    nodes (List[DocNode]): A list of text nodes to index.
+    language (str): The language to use, supports ``en`` (English) and ``zh`` (Chinese). Defaults to ``en``.
+    topk (int): The maximum number of nodes to return in each retrieval. Defaults to 2.
+"""
 
     def __init__(
         self,

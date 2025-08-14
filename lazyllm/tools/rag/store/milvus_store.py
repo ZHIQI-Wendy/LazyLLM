@@ -25,6 +25,46 @@ MILVUS_PAGINATION_OFFSET = 1000
 
 
 class MilvusStore(StoreBase):
+    """
+Inherits from the StoreBase abstract base class. Implements a vector database based on Milvus. Its functionality is similar to ChromadbStore, used for storing, managing, indexing, and querying embedded document nodes (DocNode).
+Args:
+    group_embed_keys (Dict[str, Set[str]]): Specifies the embedding fields for each group.
+    embed (Dict[str, Callable]): Embedding functions for each field.
+    embed_dims (Dict[str, int]): Vector dimensions for each embedding field.
+    embed_datatypes (Dict[str, DataType]): Vector types for each embedding field (must comply with Milvus types).
+    global_metadata_desc (Dict[str, GlobalMetadataDesc]): Description of global metadata fields, used to configure other non-vector fields in Milvus.
+    url (str): Milvus connection address, supporting local or remote connections.
+    index_kwargs (Union[Dict, List]): Optional index parameters for creating Milvus vector indexes, such as IVF, HNSW parameters.
+    db_name (str): Optional, defaults to "lazyllm". Represents the database name in Milvus.
+
+
+Examples:
+    
+    >>> from lazyllm.tools.rag.milvus_store import MilvusStore
+    >>> from typing import Dict, List
+    >>> import numpy as np
+    >>> store = MilvusStore(
+    ...     group_embed_keys={
+    ...         "articles": {"text"},
+    ...         "faqs": {"question"}
+    ...     },
+    ...     embed={
+    ...         "text": lambda x: np.random.rand(128).tolist(),
+    ...         "question": lambda x: np.random.rand(128).tolist()
+    ...     },
+    ...     embed_dims={"text": 128, "question": 128},
+    ...     embed_datatypes={"text": DataType.FLOAT_VECTOR, "question": DataType.FLOAT_VECTOR},
+    ...     global_metadata_desc=None,
+    ...     uri="http://localhost:19530",
+    ...     index_kwargs={"metric_type": "L2", "index_type": "IVF_FLAT", "params": {"nlist": 128}},
+    ...     db_name="test_db"
+    ... )
+    >>> store.update_nodes([node1, node2])
+    >>> results = store.query(query_text="文档内容", group_name="articles", top_k=2)
+    >>> for node in results:
+    ...     print(f"找到文档: {node._content[:20]}...")
+    >>> store.remove_nodes(doc_ids=["doc1"])
+    """
     # we define these variables as members so that pymilvus is not imported until MilvusStore is instantiated.
     def _def_constants(self) -> None:
         self._primary_key = 'uid'
@@ -201,6 +241,11 @@ class MilvusStore(StoreBase):
 
     @override
     def update_nodes(self, nodes: List[DocNode]) -> None:
+        """
+Update or insert nodes into Milvus collections and memory store.
+Args:
+    nodes (List[DocNode]): List of document nodes to update.
+"""
         parallel_do_embedding(self._embed, [], nodes, self._group_embed_keys)
         group_embed_dict = defaultdict(list)
         for node in nodes:
@@ -214,6 +259,12 @@ class MilvusStore(StoreBase):
 
     @override
     def update_doc_meta(self, doc_id: str, metadata: dict) -> None:
+        """
+Update metadata for a document and sync to all related nodes.
+Args:
+    doc_id (str): Target document ID.
+    metadata (dict): New metadata key-value pairs.
+"""
         self._map_store.update_doc_meta(doc_id=doc_id, metadata=metadata)
         for group in self.activated_groups():
             nodes = self.get_nodes(group_name=group, doc_ids=[doc_id])
@@ -222,6 +273,13 @@ class MilvusStore(StoreBase):
     @override
     def remove_nodes(self, doc_ids: List[str] = None, group_name: Optional[str] = None,
                      uids: Optional[List[str]] = None) -> None:
+        """
+Remove nodes by document IDs, group name, or node UIDs.
+Args:
+    doc_ids (Optional[List[str]]): Document IDs filter.
+    group_name (Optional[str]): Group name filter.
+    uids (Optional[List[str]]): Node UIDs filter.
+"""
         self._check_connection()
         nodes = self._map_store.get_nodes(group_name=group_name, doc_ids=doc_ids, uids=uids)
         group2uids = defaultdict(list)
@@ -237,18 +295,43 @@ class MilvusStore(StoreBase):
     @override
     def get_nodes(self, group_name: Optional[str] = None, uids: Optional[List[str]] = None,
                   doc_ids: Optional[Set] = None, **kwargs) -> List[DocNode]:
+        """
+Query nodes with flexible filtering options.
+Args:
+    group_name (Optional[str]): Group name filter.
+    uids (Optional[List[str]]): Node UIDs filter.
+    doc_ids (Optional[Set[str]]): Document IDs filter.
+    **kwargs: Additional query parameters.
+Returns:
+    List[DocNode]: Matched document nodes.
+"""
         return self._map_store.get_nodes(group_name, uids, doc_ids, **kwargs)
 
     @override
     def activate_group(self, group_names: Union[str, List[str]]) -> bool:
+        """
+Activate one or multiple groups for operations.
+Args:
+    group_names (Union[str, List[str]]): Group name(s) to activate.
+"""
         return self._map_store.activate_group(group_names)
 
     @override
     def activated_groups(self):
+        """
+Get names of all activated groups.
+Returns:
+    List[str]: Active group names.
+"""
         return self._map_store.activated_groups()
 
     @override
     def is_group_active(self, name: str) -> bool:
+        """
+Check if a group is activated.
+Args:
+    name (str): Group name to check.
+"""
         return self._map_store.is_group_active(name)
 
     @override
@@ -257,10 +340,21 @@ class MilvusStore(StoreBase):
 
     @override
     def register_index(self, type: str, index: IndexBase) -> None:
+        """
+Register custom index type.
+Args:
+    type (str): Index type name.
+    index (IndexBase): Custom index instance.
+"""
         self._map_store.register_index(type, index)
 
     @override
     def get_index(self, type: Optional[str] = None) -> Optional[IndexBase]:
+        """
+Get index instance by type.
+Args:
+    type (Optional[str]): Index type name, defaults to "default".
+"""
         if type is None:
             type = 'default'
         return self._map_store.get_index(type)
@@ -288,6 +382,18 @@ class MilvusStore(StoreBase):
               similarity_cut_off: Optional[Union[float, Dict[str, float]]] = float('-inf'),
               topk: int = 10, embed_keys: Optional[List[str]] = None,
               filters: Optional[Dict[str, Union[List, set]]] = None, **kwargs) -> List[DocNode]:
+        """
+Semantic search with vector similarity.
+Args:
+    query (str): Query text.
+    group_name (str): Target group name.
+    similarity_cut_off (Optional[Union[float, Dict[str, float]]]): Similarity threshold.
+    topk (int): Number of results to return.
+    embed_keys (List[str]): Embedding keys for search.
+    filters (Optional[Dict]): Metadata filters.
+Returns:
+    List[DocNode]: Nodes with similarity scores.
+"""
         if similarity_name is not None:
             raise ValueError('`similarity` MUST be None when Milvus backend is used.')
 

@@ -58,6 +58,31 @@ class _DefaultFileMetadataFunc:
         return {meta_key: meta_value for meta_key, meta_value in default_meta.items() if meta_value is not None}
 
 class SimpleDirectoryReader(ModuleBase):
+    """
+A modular document directory reader that inherits from ModuleBase, supporting reading various document formats from the file system and converting them into standardized DocNode objects.
+Args:
+    input_dir (Optional[str]): Input directory path. Mutually exclusive with input_files.
+    input_files (Optional[List]): Directly specified list of files. Mutually exclusive with input_dir.
+    exclude (Optional[List]): List of file patterns to exclude.
+    exclude_hidden (bool): Whether to exclude hidden files.
+    recursive (bool): Whether to recursively read subdirectories.
+    encoding (str): Encoding format of text files.
+    required_exts (Optional[List[str]]): Whitelist of file extensions to process.
+    file_extractor (Optional[Dict[str, Callable]]): Dictionary of custom file readers.
+    fs (Optional[AbstractFileSystem]): Custom file system.
+    metadata_genf (Optional[Callable[[str], Dict]]): Metadata generation function that takes a file path and returns a metadata dictionary.
+    num_files_limit (Optional[int]): Maximum number of files to read.
+    return_trace (bool): Whether to return processing trace information.
+    metadatas (Optional[Dict]): Predefined global metadata dictionary.
+
+
+Examples:
+    
+    >>> import lazyllm
+    >>> from lazyllm.tools.dataReader import SimpleDirectoryReader
+    >>> reader = SimpleDirectoryReader(input_dir="yourpath/",recursive=True,exclude=["*.tmp"],required_exts=[".pdf", ".docx"])
+    >>> documents = reader.load_data()
+    """
     default_file_readers: Dict[str, Type[ReaderBase]] = {
         "*.pdf": PDFReader,
         "*.docx": DocxReader,
@@ -285,6 +310,19 @@ config.add('use_fallback_reader', bool, True, 'USE_FALLBACK_READER')
 
 
 class FileReader(object):
+    """
+File content reader whose main function is to convert various input file formats into concatenated plain text content.
+Args:
+    input_files (Optional[List]): Directly specified list of input files.
+
+
+Examples:
+    
+    >>> import lazyllm
+    >>> from lazyllm.tools.dataReader import FileReader
+    >>> reader = FileReader()
+    >>> content = reader("yourpath/") 
+    """
 
     def __call__(self, input_files):
         file_list = _lazyllm_get_file_list(input_files)

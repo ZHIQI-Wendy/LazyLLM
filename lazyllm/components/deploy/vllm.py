@@ -25,6 +25,17 @@ class _VllmStreamParseParametersMeta(LazyLLMRegisterMetaClass):
 
 
 class Vllm(LazyLLMDeployBase, metaclass=_VllmStreamParseParametersMeta):
+    """Model deployment class based on vLLM.
+
+This class wraps the logic for launching a vLLM inference server, constructing commands, managing configuration parameters, and retrieving access URLs. It supports OpenAI-compatible API mode and distributed deployment via LazyLLM's launcher system.
+
+Args:
+    trust_remote_code (bool): Whether to trust remote code, allowing loading of custom modeling scripts.
+    launcher (LazyLLMLaunchersBase): Launcher object controlling how the model is deployed (local, remote, distributed).
+    log_path (str, optional): Directory for saving deployment logs.
+    openai_api (bool): Whether to launch the server in OpenAI-compatible API mode (default: False).
+    **kw: Additional deployment options, such as max sequence length, parallel configs, etc.
+"""
     # keys_name_handle/default_headers/message_format will lose efficacy when openai_api is True
     keys_name_handle = {'inputs': 'prompt', 'stop': 'stop'}
     default_headers = {'Content-Type': 'application/json'}
@@ -72,6 +83,18 @@ class Vllm(LazyLLMDeployBase, metaclass=_VllmStreamParseParametersMeta):
                 ray_launcher[0], post_action=(lazyllm.parallel(*parall_launcher) if len(parall_launcher) else None))
 
     def cmd(self, finetuned_model=None, base_model=None, master_ip=None):
+        """Build the command to launch the vLLM inference service.
+
+This method validates the model path and constructs an executable command string based on current configuration. In distributed mode, it will also prepend the ray cluster start command.
+
+Args:
+    finetuned_model (str): Path to the fine-tuned model.
+    base_model (str): Fallback base model path if finetuned_model is invalid.
+    master_ip (str): IP address of the master node in a distributed setup.
+
+Returns:
+    LazyLLMCMD: The command object with shell instruction, return value handler, and health checker.
+"""
         if not os.path.exists(finetuned_model) or \
             not any(filename.endswith('.bin') or filename.endswith('.safetensors')
                     for filename in os.listdir(finetuned_model)):
@@ -97,6 +120,16 @@ class Vllm(LazyLLMDeployBase, metaclass=_VllmStreamParseParametersMeta):
         return LazyLLMCMD(cmd=impl, return_value=self.geturl, checkf=verify_fastapi_func)
 
     def geturl(self, job=None):
+        """Get the inference service URL for the vLLM deployment.
+
+Depending on the execution mode (Display or actual deployment), this method returns the appropriate URL for accessing the model's generate endpoint.
+
+Args:
+    job (Job, optional): Deployment job object. Defaults to the module's associated job.
+
+Returns:
+    str: The HTTP URL for inference service.
+"""
         if job is None:
             job = self.job
         if lazyllm.config['mode'] == lazyllm.Mode.Display:

@@ -10,6 +10,13 @@ from lazyllm import LOG
 import requests
 
 class MagicPDFReader:
+    """Module to parse PDF content via the MagicPDF service. Supports file upload or URL-based parsing, with a callback to process the parsed elements into document nodes.
+
+Args:
+    magic_url (str): The MagicPDF service API URL.
+    callback (Optional[Callable[[List[dict], Path, dict], List[DocNode]]]): A callback function that takes parsed element list, file path, and extra info, returns a list of DocNode. Defaults to merging all text into a single node.
+    upload_mode (bool): Whether to use file upload mode for the API call. Default is False, meaning JSON request with file path.
+"""
 
     def __init__(self, magic_url, callback: Optional[Callable[[List[dict], Path, dict], List[DocNode]]] = None,
                  upload_mode: bool = False):

@@ -215,6 +215,13 @@ class OpenAIModule(OnlineChatModuleBase, FileHandlerBase):
 
 
 class OpenAIEmbedding(OnlineEmbeddingModuleBase):
+    """Online embedding module using OpenAI.
+This class wraps the OpenAI Embedding API, defaulting to the `text-embedding-ada-002` model, and converts text into vector representations.
+Args:
+    embed_url (str): The URL endpoint of the OpenAI embedding API. Default is "https://api.openai.com/v1/embeddings".
+    embed_model_name (str): The name of the embedding model to use. Default is "text-embedding-ada-002".
+    api_key (str, optional): The OpenAI API key. If not provided, it will be read from `lazyllm.config`.
+"""
     NO_PROXY = True
 
     def __init__(self,

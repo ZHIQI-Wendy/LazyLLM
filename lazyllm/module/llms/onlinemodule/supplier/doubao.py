@@ -8,6 +8,16 @@ from lazyllm.components.utils.file_operate import bytes_to_file
 from lazyllm.thirdparty import volcenginesdkarkruntime
 
 class DoubaoModule(OnlineChatModuleBase):
+    """Doubao online chat module.
+This class wraps the Doubao API (from ByteDance) for multi-turn chat. It defaults to model `doubao-1-5-pro-32k-250115` and supports streaming and optional trace return.
+Args:
+    model (str): The name of the model to use. Defaults to `doubao-1-5-pro-32k-250115`.
+    base_url (str): The base URL for the API. Defaults to "https://ark.cn-beijing.volces.com/api/v3/".
+    api_key (str): Doubao API key. If not provided, it will be read from `lazyllm.config['doubao_api_key']`.
+    stream (bool): Whether to use streaming output. Defaults to True.
+    return_trace (bool): Whether to return trace information. Defaults to False.
+    **kwargs: Additional arguments passed to the base class.
+"""
     MODEL_NAME = "doubao-1-5-pro-32k-250115"
 
     def __init__(self, model: str = None, base_url: str = "https://ark.cn-beijing.volces.com/api/v3/",
